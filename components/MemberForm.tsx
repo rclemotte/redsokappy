@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Combobox from "@/components/Combobox";
 
 type Opt = { value: string; label: string };
 
@@ -144,34 +145,27 @@ export default function MemberForm({ id }: { id?: number }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Campo label="División">
-            <select className={inputCls} value={division} onChange={(e) => setDivision(e.target.value)}>
-              <option value="">—</option>
-              {divisiones.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <Combobox value={division} onChange={setDivision} options={divisiones} placeholder="División..." />
           </Campo>
           <Campo label="Estado">
-            <select className={inputCls} value={idEstado} onChange={(e) => setIdEstado(e.target.value)}>
-              <option value="">—</option>
-              {estados.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <Combobox value={idEstado} onChange={setIdEstado} options={estados} placeholder="Estado..." />
           </Campo>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Campo label="Han">
-            <select className={inputCls} value={idHan} onChange={(e) => setIdHan(e.target.value)}>
-              <option value="">—</option>
-              {hans.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <Combobox value={idHan} onChange={setIdHan} options={hans} placeholder="Han..." />
           </Campo>
           <Campo label="Fecha de ingreso">
             <input type="date" className={inputCls} value={fechaIngreso} onChange={(e) => setFechaIngreso(e.target.value)} />
           </Campo>
         </div>
         <Campo label="Le hizo shakubuku (lo invitó)">
-          <select className={inputCls} value={invitadoPor} onChange={(e) => setInvitadoPor(e.target.value)}>
-            <option value="">—</option>
-            {personas.filter((o) => o.value !== String(id)).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <Combobox
+            value={invitadoPor}
+            onChange={setInvitadoPor}
+            options={personas.filter((o) => o.value !== String(id))}
+            placeholder="Buscar persona..."
+          />
         </Campo>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={titular} onChange={(e) => setTitular(e.target.checked)} />
@@ -249,7 +243,6 @@ function Relacionadas({ idPersona }: { idPersona: number }) {
 
   const secc = "bg-white rounded-xl shadow-sm p-4 space-y-2";
   const chip = "flex items-center justify-between text-sm border-b last:border-0 py-1.5";
-  const selCls = "flex-1 rounded-lg border border-gray-300 px-2 py-1.5 text-sm bg-white";
   const addBtn = "rounded-lg bg-marca text-white text-sm px-3";
 
   return (
@@ -264,18 +257,16 @@ function Relacionadas({ idPersona }: { idPersona: number }) {
             <button className="text-red-500 text-xs" onClick={async () => { await supabase.from("grupos_personas").delete().eq("id_grupo_persona", x.id_grupo_persona); recargar(); }}>Quitar</button>
           </div>
         ))}
-        <div className="flex gap-2 pt-1">
-          <select className={selCls} value={ngGrupo} onChange={(e) => setNgGrupo(e.target.value)}>
-            <option value="">Grupo...</option>{catGrupos.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-          <select className={selCls} value={ngCargo} onChange={(e) => setNgCargo(e.target.value)}>
-            <option value="">Cargo...</option>{catCargos.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-          <button className={addBtn} onClick={async () => {
-            if (!ngGrupo || !ngCargo) return;
-            await supabase.from("grupos_personas").insert({ id_persona: idPersona, id_grupo: Number(ngGrupo), id_cargo: Number(ngCargo) });
-            setNgGrupo(""); setNgCargo(""); recargar();
-          }}>+</button>
+        <div className="space-y-2 pt-1">
+          <Combobox value={ngGrupo} onChange={setNgGrupo} options={catGrupos} placeholder="Grupo..." />
+          <div className="flex gap-2">
+            <Combobox className="flex-1" value={ngCargo} onChange={setNgCargo} options={catCargos} placeholder="Cargo..." />
+            <button className={addBtn} onClick={async () => {
+              if (!ngGrupo || !ngCargo) return;
+              await supabase.from("grupos_personas").insert({ id_persona: idPersona, id_grupo: Number(ngGrupo), id_cargo: Number(ngCargo) });
+              setNgGrupo(""); setNgCargo(""); recargar();
+            }}>+</button>
+          </div>
         </div>
       </div>
 
@@ -288,9 +279,7 @@ function Relacionadas({ idPersona }: { idPersona: number }) {
           </div>
         ))}
         <div className="flex gap-2 pt-1">
-          <select className={selCls} value={nSus} onChange={(e) => setNSus(e.target.value)}>
-            <option value="">Tipo...</option>{catTipoSus.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <Combobox className="flex-1" value={nSus} onChange={setNSus} options={catTipoSus} placeholder="Tipo..." />
           <button className={addBtn} onClick={async () => {
             if (!nSus) return;
             await supabase.from("suscripciones").insert({ id_persona: idPersona, id_tipo_suscripcion: Number(nSus) });
@@ -308,9 +297,7 @@ function Relacionadas({ idPersona }: { idPersona: number }) {
           </div>
         ))}
         <div className="flex gap-2 pt-1">
-          <select className={selCls} value={nExam} onChange={(e) => setNExam(e.target.value)}>
-            <option value="">Nivel...</option>{catExam.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <Combobox className="flex-1" value={nExam} onChange={setNExam} options={catExam} placeholder="Nivel..." />
           <button className={addBtn} onClick={async () => {
             if (!nExam) return;
             await supabase.from("examen_personas").insert({ id_persona: idPersona, id_examen: Number(nExam) });

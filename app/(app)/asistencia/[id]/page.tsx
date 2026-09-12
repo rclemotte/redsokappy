@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Combobox from "@/components/Combobox";
 
 type Opt = { value: string; label: string };
 type Asistente = { id_asistencia_d: number; id_persona: number | null; personas: { nombre: string; division: string | null } | null };
@@ -31,7 +32,7 @@ export default function ReunionDetallePage() {
   async function cargarAsistentes() {
     const { data } = await supabase
       .from("asistencia_d")
-      .select("id_asistencia_d, id_persona, personas(nombre, division)")
+      .select("id_asistencia_d, id_persona, personas:personas!id_persona(nombre, division)")
       .eq("id_asistencia", idAs)
       .order("id_asistencia_d");
     setAsistentes((data as any) ?? []);
@@ -103,18 +104,12 @@ export default function ReunionDetallePage() {
           </label>
           <label className="block">
             <span className="block text-sm font-medium mb-1">Tipo</span>
-            <select className={inputCls} value={tipo} onChange={(e) => setTipo(e.target.value)}>
-              <option value="">—</option>
-              {tipos.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <Combobox value={tipo} onChange={setTipo} options={tipos} placeholder="Tipo de evento..." />
           </label>
         </div>
         <label className="block">
           <span className="block text-sm font-medium mb-1">Han</span>
-          <select className={inputCls} value={han} onChange={(e) => setHan(e.target.value)}>
-            <option value="">—</option>
-            {hans.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <Combobox value={han} onChange={setHan} options={hans} placeholder="Han..." />
         </label>
         {err && <p className="text-sm text-red-600">{err}</p>}
         {msg && <p className="text-sm text-green-600">{msg}</p>}

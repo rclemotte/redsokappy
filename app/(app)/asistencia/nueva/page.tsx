@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Combobox from "@/components/Combobox";
 
 type Opt = { value: string; label: string };
 type Persona = { id_persona: number; nombre: string; division: string | null };
@@ -91,18 +92,12 @@ export default function NuevaReunionPage() {
           </label>
           <label className="block">
             <span className="block text-sm font-medium mb-1">Tipo de evento *</span>
-            <select className={inputCls} value={tipo} onChange={(e) => setTipo(e.target.value)}>
-              <option value="">—</option>
-              {tipos.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <Combobox value={tipo} onChange={setTipo} options={tipos} placeholder="Tipo de evento..." />
           </label>
         </div>
         <label className="block">
           <span className="block text-sm font-medium mb-1">Han (opcional)</span>
-          <select className={inputCls} value={han} onChange={(e) => setHan(e.target.value)}>
-            <option value="">—</option>
-            {hans.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <Combobox value={han} onChange={setHan} options={hans} placeholder="Han..." />
         </label>
       </div>
 
