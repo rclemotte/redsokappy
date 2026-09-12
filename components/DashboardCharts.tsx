@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
-  Tooltip, ResponsiveContainer, Legend, CartesianGrid,
+  Cell, BarChart, Bar, XAxis, YAxis,
+  Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 
 // Paleta Okabe-Ito (segura para daltonismo), en orden fijo.
@@ -26,24 +26,18 @@ export default function DashboardCharts({
   return (
     <div className="space-y-4">
       <Panel titulo="Miembros por división">
-        <ResponsiveContainer width="100%" height={240}>
-          <PieChart>
-            <Pie
-              data={division}
-              dataKey="cantidad"
-              nameKey="etiqueta"
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              label={(e: any) => `${e.etiqueta}: ${e.cantidad}`}
-              labelLine={false}
-            >
+        <ResponsiveContainer width="100%" height={Math.max(200, division.length * 40)}>
+          <BarChart data={division} layout="vertical" margin={{ top: 4, right: 28, left: 40, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#eee" horizontal={false} />
+            <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
+            <YAxis type="category" dataKey="etiqueta" tick={{ fontSize: 10 }} width={130} />
+            <Tooltip />
+            <Bar dataKey="cantidad" name="Miembros" radius={[0, 4, 4, 0]}>
               {division.map((_, i) => (
                 <Cell key={i} fill={PALETA[i % PALETA.length]} />
               ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
+            </Bar>
+          </BarChart>
         </ResponsiveContainer>
       </Panel>
 

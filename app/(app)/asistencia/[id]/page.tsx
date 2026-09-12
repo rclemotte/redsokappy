@@ -30,12 +30,33 @@ export default function ReunionDetallePage() {
   const [cargando, setCargando] = useState(true);
 
   async function cargarAsistentes() {
-    const { data } = await supabase
+    // Paso 1: renglones de asistencia (sin embed, para evitar ambigüedad de FK)
+    const { data: rows, error } = await supabase
       .from("asistencia_d")
-      .select("id_asistencia_d, id_persona, personas:personas!id_persona(nombre, division)")
+      .select("id_asistencia_d, id_persona")
       .eq("id_asistencia", idAs)
       .order("id_asistencia_d");
-    setAsistentes((data as any) ?? []);
+    if (error) { setErr(traducir(error.message)); setAsistentes([]); return; }
+    const base = (rows as { id_asistencia_d: number; id_persona: number | null }[]) ?? [];
+
+    // Paso 2: nombres de las personas involucradas
+    const ids = Array.from(new Set(base.map((r) => r.id_persona).filter((x): x is number => x != null)));
+    const mapa = new Map<number, { nombre: string; division: string | null }>();
+    if (ids.length) {
+      const { data: ps } = await supabase
+        .from("personas")
+        .select("id_persona, nombre, division")
+        .in("id_persona", ids);
+      (ps ?? []).forEach((p: any) => mapa.set(p.id_persona, { nombre: p.nombre, division: p.division }));
+    }
+
+    setAsistentes(
+      base.map((r) => ({
+        id_asistencia_d: r.id_asistencia_d,
+        id_persona: r.id_persona,
+        personas: r.id_persona != null ? mapa.get(r.id_persona) ?? null : null,
+      }))
+    );
   }
 
   useEffect(() => {
