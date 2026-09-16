@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { usuarioAEmail } from "@/lib/usuarios";
 
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [email, setEmail] = useState("");
+  const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
@@ -16,13 +17,29 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setCargando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setCargando(false);
+
+    const email = usuarioAEmail(usuario);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setError("No pudimos ingresar. Revisá el correo y la contraseña.");
+      setCargando(false);
+      setError("No pudimos ingresar. Revisá el usuario y la contraseña.");
       return;
     }
-    router.push("/inicio");
+
+    // ¿Primer ingreso? -> a cambiar la contraseña.
+    let destino = "/inicio";
+    const uid = data.user?.id;
+    if (uid) {
+      const { data: perfil } = await supabase
+        .from("perfiles")
+        .select("debe_cambiar_password")
+        .eq("id", uid)
+        .single();
+      if (perfil?.debe_cambiar_password) destino = "/cambiar-password";
+    }
+
+    setCargando(false);
+    router.push(destino);
     router.refresh();
   }
 
@@ -39,14 +56,16 @@ export default function LoginPage() {
 
         <form onSubmit={ingresar} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Correo</label>
+            <label className="block text-sm font-medium mb-1">Usuario</label>
             <input
-              type="email"
+              type="text"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-marca"
-              placeholder="tucorreo@ejemplo.com"
+              placeholder="Número de cédula"
             />
           </div>
           <div>
@@ -70,6 +89,10 @@ export default function LoginPage() {
           >
             {cargando ? "Ingresando..." : "Ingresar"}
           </button>
+
+          <p className="text-xs text-gray-400 text-center">
+            La primera vez, tu contraseña es tu número de cédula.
+          </p>
         </form>
       </div>
     </main>

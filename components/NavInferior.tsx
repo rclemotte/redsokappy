@@ -3,14 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const items = [
+const base = [
   { href: "/inicio", label: "Inicio", icon: "🏠" },
   { href: "/miembros", label: "Miembros", icon: "👥" },
   { href: "/asistencia", label: "Asistencia", icon: "📝" },
 ];
 
-export default function NavInferior() {
+export default function NavInferior({ esEditor = false }: { esEditor?: boolean }) {
   const path = usePathname();
+  const items = esEditor
+    ? [...base, { href: "/usuarios", label: "Usuarios", icon: "🔑" }]
+    : base;
+
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 flex z-10">
       {items.map((it) => {
