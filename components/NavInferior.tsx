@@ -12,7 +12,11 @@ const base = [
 export default function NavInferior({ esEditor = false }: { esEditor?: boolean }) {
   const path = usePathname();
   const items = esEditor
-    ? [...base, { href: "/usuarios", label: "Usuarios", icon: "🔑" }]
+    ? [
+        ...base,
+        { href: "/eventos", label: "Eventos", icon: "🎟️" },
+        { href: "/usuarios", label: "Usuarios", icon: "🔑" },
+      ]
     : base;
 
   return (

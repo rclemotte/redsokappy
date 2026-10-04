@@ -33,7 +33,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const esPublica = path === "/login" || path.startsWith("/auth");
+  // /festival = registro público e ingreso (kiosko) del Festival: sin login.
+  const esPublica =
+    path === "/login" || path.startsWith("/auth") || path.startsWith("/festival");
 
   // Sin sesión y en ruta privada -> al login.
   if (!user && !esPublica) {
