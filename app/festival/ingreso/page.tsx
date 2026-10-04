@@ -120,7 +120,7 @@ export default function IngresoFestivalPage() {
   return (
     <main className="max-w-md mx-auto px-4 py-6 text-white min-h-screen flex flex-col">
       <header className="text-center">
-        <p className="text-sm uppercase tracking-widest opacity-80">Festival por la Paz</p>
+        <p className="text-sm uppercase tracking-widest opacity-80">Festival Soka por la Paz</p>
         <h1 className="text-xl font-bold">{evento.nombre}</h1>
         <p className="text-sm opacity-80 mt-1">Ingresaron: {evento.ingresados}</p>
       </header>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { type EventoPublico, fechaCorta, limpiarCedula, lugaresLibres } from "@/lib/festival";
+import { type EventoPublico, fechaLarga, limpiarCedula } from "@/lib/festival";
 
 // Registro PÚBLICO al Festival (sin login). Se comparte el link /festival.
 export default function RegistroFestivalPage() {
@@ -92,7 +92,7 @@ export default function RegistroFestivalPage() {
     <main className="max-w-md mx-auto px-4 py-8">
       <header className="text-center text-white mb-6">
         <p className="text-sm uppercase tracking-widest opacity-80">Soka Gakkai Paraguay</p>
-        <h1 className="text-3xl font-bold mt-1">Festival por la Paz</h1>
+        <h1 className="text-3xl font-bold mt-1">Festival Soka por la Paz</h1>
         <p className="opacity-90 mt-2">Registrate para participar</p>
       </header>
 
@@ -127,7 +127,6 @@ export default function RegistroFestivalPage() {
               <div className="space-y-2">
                 {eventos.map((ev) => {
                   const sel = elegidos.includes(ev.id_evento);
-                  const libres = lugaresLibres(ev.cupo, ev.registrados);
                   return (
                     <button
                       type="button"
@@ -147,14 +146,12 @@ export default function RegistroFestivalPage() {
                         </span>
                         <span className="flex-1">
                           <span className="block font-medium">{ev.nombre}</span>
-                          <span className="block text-sm text-gray-500">
-                            {[fechaCorta(ev.fecha), ev.hora, ev.lugar].filter(Boolean).join(" · ")}
-                          </span>
-                          {libres != null && (
-                            <span className={`block text-sm mt-1 ${libres > 0 ? "text-green-700" : "text-orange-600"}`}>
-                              {libres > 0 ? `Quedan ${libres} lugares` : "Cupo completo — igual podés registrarte"}
+                          {(ev.fecha || ev.hora) && (
+                            <span className="block text-sm text-marca font-medium mt-0.5">
+                              📅 {fechaLarga(ev.fecha, ev.hora)}
                             </span>
                           )}
+                          {ev.lugar && <span className="block text-sm text-gray-500">📍 {ev.lugar}</span>}
                         </span>
                       </div>
                     </button>
