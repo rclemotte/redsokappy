@@ -389,7 +389,7 @@ export default function EventosClient() {
         </div>
         {evento && (
           <div className="flex items-center justify-between gap-2">
-            <span>Kiosko de ingreso (un solo link, elige la función según la hora)</span>
+            <span>Kiosko de confirmación de ingreso (un solo link)</span>
             <span className="flex gap-3">
               <button
                 className="text-marca font-semibold"
