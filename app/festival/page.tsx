@@ -30,9 +30,11 @@ export default function RegistroFestivalPage() {
 
   const [enviando, setEnviando] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [listo, setListo] = useState<{ nombre: string; evento: EventoPublico | null } | null>(null);
+  const [listo, setListo] = useState<{ nombre: string; eventos: EventoPublico[]; staff: boolean } | null>(null);
 
   const lleno = (ev: EventoPublico) => ev.cupo != null && ev.registrados >= ev.cupo;
+  // Miembro + comité/staff artístico → queda registrado en todas las funciones
+  const staff = esMiembro === true && esStaff === true;
 
   async function cargarEventos() {
     const { data } = await supabase.rpc("fest_eventos_publicos");
@@ -65,11 +67,12 @@ export default function RegistroFestivalPage() {
     if (!telefonoValido(telefono)) return setErr("Ingresá un teléfono válido. Ej.: 0981 123456");
     if (esMiembro === null) return setErr("Indicá si sos miembro de la Soka Gakkai.");
     if (esMiembro && esStaff === null) return setErr("Indicá si pertenecés a un comité / staff artístico.");
-    if (!idEvento) return setErr("Elegí la función a la que vas a asistir.");
+    if (!staff && todoLleno) return setErr("Se completaron los cupos de todas las funciones.");
+    if (!staff && !idEvento) return setErr("Elegí la función a la que vas a asistir.");
 
     setEnviando(true);
     const { data, error } = await supabase.rpc("fest_registrar", {
-      p_eventos: [idEvento],
+      p_eventos: staff ? eventos.map((ev) => ev.id_evento) : [idEvento],
       p_cedula: cedula,
       p_nombre: nombre,
       p_apellido: apellido,
@@ -79,16 +82,18 @@ export default function RegistroFestivalPage() {
     });
     setEnviando(false);
 
-    const r = data as { ok: boolean; error?: string; codigo?: string } | null;
+    const r = data as { ok: boolean; error?: string; codigo?: string; eventos?: number[] } | null;
     if (error || !r) return setErr("No pudimos registrarte. Probá de nuevo en un momento.");
     if (!r.ok) {
       if (r.codigo === "cupo_completo") cargarEventos();
       return setErr(r.error ?? "No pudimos registrarte.");
     }
 
+    const ids = r.eventos ?? [];
     setListo({
       nombre: nombre.trim().split(" ")[0],
-      evento: eventos.find((ev) => ev.id_evento === idEvento) ?? null,
+      eventos: eventos.filter((ev) => ids.includes(ev.id_evento)),
+      staff,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -109,6 +114,7 @@ export default function RegistroFestivalPage() {
   const input =
     "w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#f11579] focus:border-transparent";
   const disponibles = eventos.filter((e) => !lleno(e));
+  const todoLleno = disponibles.length === 0;
 
   return (
     <main className="px-4 pb-10">
@@ -119,17 +125,18 @@ export default function RegistroFestivalPage() {
           <p className="text-center text-gray-500 py-10">Cargando…</p>
         ) : eventos.length === 0 ? (
           <p className="text-center text-gray-600 py-10">El registro no está abierto en este momento.</p>
-        ) : disponibles.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-5xl mb-2">🙏</div>
-            <p className="font-bold text-lg">¡Se completaron todos los cupos!</p>
-            <p className="text-gray-600 mt-1">Gracias por tu interés en el Festival Soka por la Paz.</p>
-          </div>
         ) : (
           <form onSubmit={enviar} className="space-y-5">
             <h1 className="text-2xl font-extrabold text-center" style={{ color: ROSA }}>
               Registrate para participar
             </h1>
+
+            {todoLleno && (
+              <div className="rounded-xl bg-[#ffb127]/20 border border-[#ffb127] px-4 py-3 text-sm text-center">
+                <b>¡Se completaron los cupos de todas las funciones!</b> Solo pueden registrarse integrantes de comités / staff
+                artístico.
+              </div>
+            )}
 
             {/* 1) Datos personales */}
             <label className="block">
@@ -177,32 +184,44 @@ export default function RegistroFestivalPage() {
 
             {/* 4) Función */}
             <div>
-              <p className="font-semibold mb-2">¿A qué función vas a asistir?</p>
+              <p className="font-semibold mb-1">{staff ? "Funciones" : "¿A qué función vas a asistir?"}</p>
+              {staff ? (
+                <p className="text-sm text-gray-600 mb-2">
+                  Como integrante de un comité / staff artístico, quedás registrado/a en <b>todas las funciones</b>.
+                </p>
+              ) : (
+                <div className="mb-1" />
+              )}
               <div className="space-y-2">
                 {eventos.map((ev) => {
-                  const sel = idEvento === ev.id_evento;
-                  const full = lleno(ev);
+                  const sel = staff || idEvento === ev.id_evento;
+                  const full = !staff && lleno(ev);
                   return (
                     <button
                       type="button"
                       key={ev.id_evento}
-                      disabled={full}
+                      disabled={full || staff}
                       onClick={() => setIdEvento(ev.id_evento)}
                       className={`w-full text-left rounded-xl border-2 px-4 py-3 transition ${
                         full
                           ? "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed"
                           : sel
-                          ? "border-[#f11579] bg-[#f11579]/5"
+                          ? `border-[#f11579] bg-[#f11579]/5 ${staff ? "cursor-default" : ""}`
                           : "border-gray-200"
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <span
-                          className={`mt-0.5 h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center ${
+                          className={`mt-0.5 h-5 w-5 shrink-0 ${staff ? "rounded" : "rounded-full"} border-2 flex items-center justify-center ${
                             sel ? "border-[#f11579]" : "border-gray-300"
                           }`}
                         >
-                          {sel && <span className="h-2.5 w-2.5 rounded-full bg-[#f11579]" />}
+                          {sel &&
+                            (staff ? (
+                              <span className="h-full w-full bg-[#f11579] text-white text-xs flex items-center justify-center">✓</span>
+                            ) : (
+                              <span className="h-2.5 w-2.5 rounded-full bg-[#f11579]" />
+                            ))}
                         </span>
                         <span className="flex-1">
                           <span className="block font-semibold">{ev.nombre}</span>
@@ -276,10 +295,9 @@ function Confirmacion({
   listo,
   onOtra,
 }: {
-  listo: { nombre: string; evento: EventoPublico | null };
+  listo: { nombre: string; eventos: EventoPublico[]; staff: boolean };
   onOtra: () => void;
 }) {
-  const ev = listo.evento;
   const wa = `https://wa.me/${FESTIVAL.whatsapp}?text=${encodeURIComponent(FESTIVAL.whatsappTexto)}`;
 
   return (
@@ -289,14 +307,16 @@ function Confirmacion({
         <h2 className="text-2xl font-extrabold" style={{ color: ROSA }}>
           ¡Listo, {listo.nombre}!
         </h2>
-        <p className="text-gray-700 mt-1">Tu lugar quedó registrado.</p>
-        {ev && (
-          <div className="mt-3 rounded-xl bg-[#ffb127]/15 border border-[#ffb127]/50 px-4 py-3 text-left">
+        <p className="text-gray-700 mt-1">
+          {listo.staff ? "Quedaste registrado/a como comité / staff artístico en:" : "Tu lugar quedó registrado."}
+        </p>
+        {listo.eventos.map((ev) => (
+          <div key={ev.id_evento} className="mt-3 rounded-xl bg-[#ffb127]/15 border border-[#ffb127]/50 px-4 py-3 text-left">
             <p className="font-semibold">{ev.nombre}</p>
             {(ev.fecha || ev.hora) && <p className="text-sm text-[#e03e00] font-medium">📅 {fechaLarga(ev.fecha, ev.hora)}</p>}
             {ev.lugar && <p className="text-sm text-gray-600">📍 {ev.lugar}</p>}
           </div>
-        )}
+        ))}
         <p className="text-sm text-gray-600 mt-3">
           El día del festival solo tenés que dar tu <b>número de cédula</b> en la entrada. Las personas registradas tienen{" "}
           <b>acceso prioritario</b>.
