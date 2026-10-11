@@ -318,8 +318,7 @@ function Confirmacion({
           </div>
         ))}
         <p className="text-sm text-gray-600 mt-3">
-          El día del festival solo tenés que dar tu <b>número de cédula</b> en la entrada. Las personas registradas tienen{" "}
-          <b>acceso prioritario</b>.
+          Presenta tu <b>cédula</b> en la entrada. Las personas registradas previamente tienen <b>acceso prioritario</b>.
         </p>
       </div>
 
@@ -362,13 +361,10 @@ function Confirmacion({
         </div>
 
         <div className="mt-4 rounded-xl bg-[#ff4501]/10 border-l-4 border-[#ff4501] px-4 py-3 text-sm text-gray-800">
-          <b>Importante:</b> los alimentos se recibirán <b>únicamente en el Centro Cultural</b>. El día del festival no se
-          realizará la recepción de donaciones en el teatro.
+          <b>Importante:</b> Las donaciones se recibirán <b>exclusivamente en el Centro Cultural</b>, no en el teatro el día del
+          festival.
         </div>
 
-        <p className="mt-5 text-center font-semibold italic" style={{ color: ROSA }}>
-          Un encuentro. Un gesto solidario. Un aporte que puede llegar mucho más lejos.
-        </p>
       </div>
 
       <button onClick={onOtra} className="mt-6 w-full text-center font-semibold" style={{ color: ROSA }}>
