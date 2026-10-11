@@ -22,6 +22,7 @@ type Est = {
   ingresados: number;
   ing_con_registro: number;
   ing_sin_registro: number;
+  ing_staff: number;
   por_dia: { dia: string; n: number }[];
   por_intervalo: { t: string; n: number }[];
 };
@@ -88,10 +89,12 @@ export default function PanelFestival() {
       registrados: suma("registrados"),
       reg_miembros: suma("reg_miembros"),
       reg_no_miembros: suma("reg_no_miembros"),
-      reg_staff: suma("reg_staff"),
+      // El staff está registrado en todas las funciones: son las mismas personas
+      reg_staff: Math.max(...eventos.map((e) => Number(e.reg_staff ?? 0))),
       ingresados: suma("ingresados"),
       ing_con_registro: suma("ing_con_registro"),
       ing_sin_registro: suma("ing_sin_registro"),
+      ing_staff: suma("ing_staff"),
       por_dia: merge(eventos.map((e) => e.por_dia as any), "dia"),
       por_intervalo: merge(eventos.map((e) => e.por_intervalo as any), "t"),
     };
@@ -150,7 +153,7 @@ export default function PanelFestival() {
 
       <p className="text-center text-xs text-white/90 drop-shadow">
         Se actualiza solo cada 10 segundos.
-        {sel === "todas" && eventos.length > 1 && " En «Ambas», el comité / staff cuenta una vez por cada función."}
+        {" "}El comité / staff no ocupa butaca: se cuenta aparte.
       </p>
     </main>
   );
@@ -194,7 +197,7 @@ function Registro({ v }: { v: Est }) {
       <div className="flex items-end justify-between gap-2">
         <div>
           <p className="text-5xl font-extrabold text-gray-900 tabular-nums leading-none">{fmt(v.registrados)}</p>
-          <p className="text-sm text-gray-600 mt-1">personas registradas{v.cupo != null ? ` de ${fmt(v.cupo)} lugares` : ""}</p>
+          <p className="text-sm text-gray-600 mt-1">personas del público registradas{v.cupo != null ? ` de ${fmt(v.cupo)} butacas` : ""}</p>
         </div>
         {v.cupo != null && (
           <p className="text-right">
@@ -214,11 +217,11 @@ function Registro({ v }: { v: Est }) {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-2 mt-4">
-        <Stat valor={fmt(v.reg_miembros)} label="Miembros" sub={`${pct(v.reg_miembros, v.registrados)}%`} />
-        <Stat valor={fmt(v.reg_no_miembros)} label="No miembros" sub={`${pct(v.reg_no_miembros, v.registrados)}%`} />
-        <Stat valor={fmt(v.reg_staff)} label="Comité / staff" sub={`${pct(v.reg_staff, v.registrados)}%`} />
+      <div className="grid grid-cols-2 gap-2 mt-4">
+        <Stat valor={fmt(v.reg_miembros)} label="Miembros" sub={`${pct(v.reg_miembros, v.registrados)}% del público`} />
+        <Stat valor={fmt(v.reg_no_miembros)} label="No miembros" sub={`${pct(v.reg_no_miembros, v.registrados)}% del público`} />
       </div>
+      <Staff n={v.reg_staff} texto="registrados del comité / staff" />
 
       {dias.length > 0 && (
         <div className="mt-5">
@@ -237,7 +240,7 @@ function Ingreso({ v }: { v: Est }) {
       <div className="flex items-end justify-between gap-2">
         <div>
           <p className="text-5xl font-extrabold text-gray-900 tabular-nums leading-none">{fmt(v.ingresados)}</p>
-          <p className="text-sm text-gray-600 mt-1">personas ingresaron{v.cupo != null ? ` de ${fmt(v.cupo)} lugares` : ""}</p>
+          <p className="text-sm text-gray-600 mt-1">personas del público ingresaron{v.cupo != null ? ` de ${fmt(v.cupo)} butacas` : ""}</p>
         </div>
         {v.cupo != null && (
           <p className="text-right">
@@ -263,6 +266,7 @@ function Ingreso({ v }: { v: Est }) {
           sub={`${fmt(v.ing_con_registro)} de ${fmt(v.registrados)} registrados`}
         />
       </div>
+      <Staff n={v.ing_staff} texto="del comité / staff ingresaron" />
 
       {v.por_intervalo.length > 0 ? (
         <div className="mt-5">
@@ -293,6 +297,18 @@ function Grafico({ data, x, unidad }: { data: any[]; x: string; unidad: string }
           <Bar dataKey="n" fill={ROSA} radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+// Comité / staff: siempre aparte, porque no ocupa butaca
+function Staff({ n, texto }: { n: number; texto: string }) {
+  return (
+    <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-gray-300 px-3 py-2">
+      <p className="text-sm text-gray-700">
+        <b className="tabular-nums">{fmt(n)}</b> {texto}
+      </p>
+      <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">no ocupan butaca</span>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { type EventoPublico, eventoSegunHora, fechaLarga, limpiarCedula } from "@/lib/festival";
 
 type Resultado =
-  | { tipo: "ok"; registrado: boolean; nombre: string }
+  | { tipo: "ok"; registrado: boolean; nombre: string; staff?: boolean }
   | { tipo: "ya_ingreso"; registrado: boolean; nombre: string }
   | { tipo: "error"; mensaje: string };
 
@@ -108,10 +108,10 @@ export default function KioskoIngreso({ modo = "auto" }: { modo?: "auto" | "pest
     setEnviando(false);
     setCedula("");
 
-    const r = data as { estado: string; registrado?: boolean; nombre?: string } | null;
+    const r = data as { estado: string; registrado?: boolean; nombre?: string; staff?: boolean } | null;
     if (error || !r) return mostrar({ tipo: "error", mensaje: "Sin conexión. Probá de nuevo." });
 
-    if (r.estado === "ok") mostrar({ tipo: "ok", registrado: !!r.registrado, nombre: r.nombre ?? "" });
+    if (r.estado === "ok") mostrar({ tipo: "ok", registrado: !!r.registrado, nombre: r.nombre ?? "", staff: !!r.staff });
     else if (r.estado === "ya_ingreso") mostrar({ tipo: "ya_ingreso", registrado: !!r.registrado, nombre: r.nombre ?? "" });
     else if (r.estado === "evento_inactivo") mostrar({ tipo: "error", mensaje: "Este evento ya no está activo." });
     else mostrar({ tipo: "error", mensaje: "Número de cédula inválido." });
@@ -264,9 +264,9 @@ function Pantalla({ res, onCerrar }: { res: Resultado; onCerrar: () => void }) {
     detalle = (
       <>
         <span className="inline-block mt-3 rounded-full bg-white/20 px-4 py-1 font-bold tracking-wide">
-          ⭐ ACCESO PRIORITARIO
+          {res.staff ? "🎭 COMITÉ / STAFF" : "⭐ ACCESO PRIORITARIO"}
         </span>
-        <span className="block mt-3">Registro previo confirmado. Puede ingresar.</span>
+        <span className="block mt-3">{res.staff ? "Integrante del comité / staff. Puede ingresar." : "Registro previo confirmado. Puede ingresar."}</span>
       </>
     );
   } else if (res.tipo === "ok") {

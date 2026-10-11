@@ -64,6 +64,8 @@ export default function EventosClient() {
       ...r,
       registrados: num(r.registrados),
       reg_miembros: num(r.reg_miembros),
+      reg_staff: num(r.reg_staff),
+      ing_staff: num(r.ing_staff),
       reg_no_miembros: num(r.reg_no_miembros),
       ingresados: num(r.ingresados),
       ing_registrados: num(r.ing_registrados),
@@ -206,9 +208,11 @@ export default function EventosClient() {
           Cupo: e.cupo ?? "",
           Registrados: e.registrados,
           "Registrados miembros": e.reg_miembros,
+          "Registrados comité / staff": e.reg_staff,
           "Registrados no miembros": e.reg_no_miembros,
           Ingresaron: e.ingresados,
           "Ingresaron registrados": e.ing_registrados,
+          "Ingresaron comité / staff": e.ing_staff,
           "Ingresaron sin registro": e.ing_sin_registro,
         }))
       ),
@@ -291,8 +295,11 @@ export default function EventosClient() {
 
       {/* Tarjeta por evento */}
       {resumen.map((e) => {
-        const libresReg = lugaresLibres(e.cupo, e.registrados);
-        const libresSala = lugaresLibres(e.cupo, e.ingresados);
+        // El comité / staff no ocupa butaca
+        const publicoReg = e.registrados - e.reg_staff;
+        const publicoSala = e.ingresados - e.ing_staff;
+        const libresReg = lugaresLibres(e.cupo, publicoReg);
+        const libresSala = lugaresLibres(e.cupo, publicoSala);
         const pct = (n: number) => (e.cupo ? Math.min(100, Math.round((n / e.cupo) * 100)) : 0);
         const activoSel = e.id_evento === sel;
         return (
@@ -339,12 +346,12 @@ export default function EventosClient() {
                 <p className="text-xs text-gray-500">Registrados</p>
                 <p className="text-2xl font-bold">{e.registrados}</p>
                 <p className="text-xs text-gray-500">
-                  {e.reg_miembros} miembros · {e.reg_no_miembros} no miembros
+                  {e.reg_miembros} miembros · {e.reg_no_miembros} no miembros · {e.reg_staff} staff (sin butaca)
                 </p>
                 {e.cupo != null && (
                   <>
                     <div className="h-2 bg-gray-100 rounded mt-2">
-                      <div className="h-2 bg-marca rounded" style={{ width: `${pct(e.registrados)}%` }} />
+                      <div className="h-2 bg-marca rounded" style={{ width: `${pct(publicoReg)}%` }} />
                     </div>
                     <p className="text-xs mt-1">
                       <b>{libresReg}</b> lugares libres
@@ -356,12 +363,12 @@ export default function EventosClient() {
                 <p className="text-xs text-gray-500">Ingresaron</p>
                 <p className="text-2xl font-bold text-green-700">{e.ingresados}</p>
                 <p className="text-xs text-gray-500">
-                  {e.ing_registrados} con registro · {e.ing_sin_registro} sin registro (espera)
+                  {e.ing_registrados} con registro · {e.ing_sin_registro} sin registro (espera) · {e.ing_staff} staff
                 </p>
                 {e.cupo != null && (
                   <>
                     <div className="h-2 bg-gray-100 rounded mt-2">
-                      <div className="h-2 bg-green-600 rounded" style={{ width: `${pct(e.ingresados)}%` }} />
+                      <div className="h-2 bg-green-600 rounded" style={{ width: `${pct(publicoSala)}%` }} />
                     </div>
                     <p className="text-xs mt-1">
                       <b>{libresSala}</b> lugares libres en sala

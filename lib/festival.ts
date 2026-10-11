@@ -18,6 +18,8 @@ export type ResumenEvento = EventoPublico & {
   ing_registrados: number;
   ing_sin_registro: number;
   ing_miembros: number;
+  reg_staff: number;
+  ing_staff: number;
 };
 
 // Deja solo dígitos (la gente escribe "4.123.456" o "4 123 456").
