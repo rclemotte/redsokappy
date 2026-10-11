@@ -389,15 +389,15 @@ export default function EventosClient() {
         </div>
         {evento && (
           <div className="flex items-center justify-between gap-2">
-            <span>Kiosko de ingreso — {evento.nombre}</span>
+            <span>Kiosko de ingreso (un solo link, elige la función según la hora)</span>
             <span className="flex gap-3">
               <button
                 className="text-marca font-semibold"
-                onClick={() => copiar(`${origen}/festival/ingreso?evento=${evento.id_evento}`, "kio")}
+                onClick={() => copiar(`${origen}/festival/ingreso`, "kio")}
               >
                 {copiado === "kio" ? "¡Copiado!" : "Copiar"}
               </button>
-              <a className="text-marca font-semibold" href={`/festival/ingreso?evento=${evento.id_evento}`} target="_blank">
+              <a className="text-marca font-semibold" href="/festival/ingreso" target="_blank">
                 Abrir
               </a>
             </span>

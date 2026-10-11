@@ -2,21 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { type EventoPublico, fechaLarga, limpiarCedula } from "@/lib/festival";
+import { type EventoPublico, eventoSegunHora, fechaLarga, limpiarCedula } from "@/lib/festival";
 
 type Resultado =
   | { tipo: "ok"; registrado: boolean; nombre: string }
   | { tipo: "ya_ingreso"; registrado: boolean; nombre: string }
   | { tipo: "error"; mensaje: string };
 
-// KIOSKO de ingreso (abierto, sin login). Uso típico: una tablet en la entrada.
-// Tip: abrir /festival/ingreso?evento=<id> deja el evento fijo y oculta el selector.
+// KIOSKO de ingreso (abierto, sin login). Uso típico: un celular o tablet en la entrada.
+// Un solo link: /festival/ingreso → elige la función automáticamente según la hora
+// (ver eventoSegunHora). El voluntario puede fijar una a mano con "Cambiar".
+// /festival/ingreso?evento=<id> sigue funcionando y deja esa función fija.
 export default function IngresoFestivalPage() {
   const supabase = createClient();
 
   const [eventos, setEventos] = useState<EventoPublico[]>([]);
   const [idEvento, setIdEvento] = useState<number | null>(null);
-  const [fijo, setFijo] = useState(false);
+  const [fijo, setFijo] = useState(false); // vino con ?evento= en el link
+  const [auto, setAuto] = useState(true); // elige la función según la hora
+  const [elegir, setElegir] = useState(false); // muestra el selector
   const [cargando, setCargando] = useState(true);
 
   const [cedula, setCedula] = useState("");
@@ -39,8 +43,13 @@ export default function IngresoFestivalPage() {
       if (param && evs.some((e) => e.id_evento === param)) {
         setIdEvento(param);
         setFijo(true);
+        setAuto(false);
       } else if (evs.length === 1) {
         setIdEvento(evs[0].id_evento);
+      } else {
+        const ev = eventoSegunHora(evs);
+        if (ev) setIdEvento(ev.id_evento);
+        else setAuto(false); // faltan fecha/hora → que el voluntario elija
       }
       setCargando(false);
     })();
@@ -48,6 +57,29 @@ export default function IngresoFestivalPage() {
       if (timer.current) clearTimeout(timer.current);
     };
   }, []); // eslint-disable-line
+
+  // En automático, revisa cada 30 s si ya toca la función siguiente
+  useEffect(() => {
+    if (!auto || eventos.length < 2) return;
+    const t = setInterval(() => {
+      const ev = eventoSegunHora(eventos);
+      if (ev) setIdEvento(ev.id_evento);
+    }, 30000);
+    return () => clearInterval(t);
+  }, [auto, eventos]);
+
+  function elegirManual(id: number) {
+    setIdEvento(id);
+    setAuto(false);
+    setElegir(false);
+  }
+
+  function volverAutomatico() {
+    const ev = eventoSegunHora(eventos);
+    if (ev) setIdEvento(ev.id_evento);
+    setAuto(true);
+    setElegir(false);
+  }
 
   function mostrar(r: Resultado) {
     setRes(r);
@@ -91,17 +123,27 @@ export default function IngresoFestivalPage() {
 
   if (cargando) return <p className="text-center text-white pt-24">Cargando…</p>;
 
-  // Paso 1: elegir el evento (lo hace el voluntario al armar el kiosko)
-  if (!evento) {
+  // Selector de función (si no se pudo elegir sola, o si el voluntario toca "Cambiar")
+  if (!evento || elegir) {
+    const sugerido = eventoSegunHora(eventos);
     return (
       <main className="px-4 pb-10">
-        <h1 className="text-2xl font-extrabold text-center mb-4 text-white drop-shadow">Confirmación de ingreso</h1>
+        <h1 className="text-2xl font-extrabold text-center mb-4 text-white drop-shadow">¿Qué función estás confirmando?</h1>
         {eventos.length === 0 && <p className="text-center text-white">No hay eventos activos.</p>}
         <div className="space-y-3">
+          {sugerido && (
+            <button
+              onClick={volverAutomatico}
+              className="w-full bg-white/95 text-gray-900 rounded-2xl px-5 py-4 text-left shadow-xl border-2 border-[#f11579]"
+            >
+              <span className="block font-semibold text-lg">🕒 Automático según la hora</span>
+              <span className="block text-sm text-gray-500">Ahora: {sugerido.nombre}. Cambia sola a la función siguiente.</span>
+            </button>
+          )}
           {eventos.map((ev) => (
             <button
               key={ev.id_evento}
-              onClick={() => setIdEvento(ev.id_evento)}
+              onClick={() => elegirManual(ev.id_evento)}
               className="w-full bg-white/95 text-gray-900 rounded-2xl px-5 py-4 text-left shadow-xl"
             >
               <span className="block font-semibold text-lg">{ev.nombre}</span>
@@ -110,6 +152,11 @@ export default function IngresoFestivalPage() {
               </span>
             </button>
           ))}
+          {evento && (
+            <button onClick={() => setElegir(false)} className="w-full text-center text-white underline drop-shadow pt-2">
+              Volver
+            </button>
+          )}
         </div>
       </main>
     );
@@ -121,8 +168,24 @@ export default function IngresoFestivalPage() {
     <main className="px-4 pb-8 flex flex-col">
       <div className="bg-white/95 backdrop-blur text-gray-900 rounded-3xl p-5 shadow-2xl">
         <header className="text-center">
-          <h1 className="text-lg font-extrabold text-[#f11579]">{evento.nombre}</h1>
-          <p className="text-xs text-gray-500">Confirmación de ingreso · Ingresaron: {evento.ingresados}</p>
+          <p className="text-xs uppercase tracking-wider text-gray-500">Confirmando ingreso a</p>
+          <h1 className="text-lg font-extrabold text-[#f11579] leading-tight">{evento.nombre}</h1>
+          {(evento.fecha || evento.hora) && (
+            <p className="text-sm font-medium text-[#e03e00]">{fechaLarga(evento.fecha, evento.hora)}</p>
+          )}
+          <div className="mt-1 flex items-center justify-center gap-2 text-xs text-gray-500">
+            {!fijo && (
+              <span className={`rounded-full px-2 py-0.5 ${auto ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                {auto ? "🕒 Automático" : "✋ Fijada a mano"}
+              </span>
+            )}
+            <span>Ingresaron: {evento.ingresados}</span>
+            {!fijo && eventos.length > 1 && (
+              <button onClick={() => setElegir(true)} className="text-[#f11579] font-semibold underline">
+                Cambiar
+              </button>
+            )}
+          </div>
         </header>
         <p className="text-center text-gray-700 mt-3 font-medium">Escribí tu número de cédula</p>
         <input
@@ -151,11 +214,6 @@ export default function IngresoFestivalPage() {
         </div>
       </div>
 
-      {!fijo && eventos.length > 1 && (
-        <button onClick={() => setIdEvento(null)} className="mt-4 text-sm text-white/90 underline drop-shadow">
-          Cambiar evento
-        </button>
-      )}
 
       {res && <Pantalla res={res} onCerrar={() => setRes(null)} />}
     </main>
