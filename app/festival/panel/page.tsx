@@ -221,7 +221,7 @@ function Registro({ v }: { v: Est }) {
         <Stat valor={fmt(v.reg_miembros)} label="Miembros" sub={`${pct(v.reg_miembros, v.registrados)}% del público`} />
         <Stat valor={fmt(v.reg_no_miembros)} label="No miembros" sub={`${pct(v.reg_no_miembros, v.registrados)}% del público`} />
       </div>
-      <Staff n={v.reg_staff} texto="registrados del comité / staff" />
+      <Staff n={v.reg_staff} texto="Comité / staff registrados" />
 
       {dias.length > 0 && (
         <div className="mt-5">
@@ -266,7 +266,7 @@ function Ingreso({ v }: { v: Est }) {
           sub={`${fmt(v.ing_con_registro)} de ${fmt(v.registrados)} registrados`}
         />
       </div>
-      <Staff n={v.ing_staff} texto="del comité / staff ingresaron" />
+      <Staff n={v.ing_staff} texto="Comité / staff ingresaron" />
 
       {v.por_intervalo.length > 0 ? (
         <div className="mt-5">
@@ -304,11 +304,14 @@ function Grafico({ data, x, unidad }: { data: any[]; x: string; unidad: string }
 // Comité / staff: siempre aparte, porque no ocupa butaca
 function Staff({ n, texto }: { n: number; texto: string }) {
   return (
-    <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-gray-300 px-3 py-2">
-      <p className="text-sm text-gray-700">
-        <b className="tabular-nums">{fmt(n)}</b> {texto}
-      </p>
-      <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">no ocupan butaca</span>
+    <div className="mt-3 flex items-center gap-4 rounded-2xl border-2 border-[#ff4501]/40 bg-[#ff4501]/[0.07] px-4 py-3">
+      <span className="text-4xl font-extrabold tabular-nums text-gray-900 leading-none">{fmt(n)}</span>
+      <span className="flex-1">
+        <span className="block text-base font-bold text-gray-900 leading-tight">🎭 {texto}</span>
+        <span className="mt-1 inline-block rounded-full bg-[#ff4501] px-2.5 py-0.5 text-xs font-semibold text-white">
+          No ocupan butaca
+        </span>
+      </span>
     </div>
   );
 }
