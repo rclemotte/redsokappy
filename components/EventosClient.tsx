@@ -131,7 +131,10 @@ export default function EventosClient() {
 
   const totales = useMemo(
     () => ({
-      registros: resumen.reduce((a, e) => a + e.registrados, 0),
+      // Personas: el comité / staff está en todas las funciones, cuenta una sola vez
+      registros:
+        resumen.reduce((a, e) => a + e.registrados - e.reg_staff, 0) +
+        Math.max(0, ...resumen.map((e) => e.reg_staff)),
       ingresos: resumen.reduce((a, e) => a + e.ingresados, 0),
     }),
     [resumen]
@@ -284,7 +287,7 @@ export default function EventosClient() {
       {/* Totales */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-xl p-3 shadow-sm">
-          <p className="text-xs text-gray-500">Registros (todos los eventos)</p>
+          <p className="text-xs text-gray-500">Personas registradas (todas las funciones)</p>
           <p className="text-3xl font-bold text-marca">{totales.registros}</p>
         </div>
         <div className="bg-white rounded-xl p-3 shadow-sm">

@@ -317,7 +317,7 @@ function Confirmacion({
           </div>
         ))}
         <p className="text-sm text-gray-600 mt-3">
-          Presenta tu <b>cédula</b> en la entrada. Las personas registradas previamente tienen <b>acceso prioritario</b>.
+          Indica tu <b>número de cédula</b> en la entrada. Las personas registradas previamente tienen <b>acceso prioritario</b>.
         </p>
       </div>
 
