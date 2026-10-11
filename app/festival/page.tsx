@@ -307,10 +307,9 @@ function Confirmacion({
         <h2 className="text-2xl font-extrabold" style={{ color: ROSA }}>
           ¡Listo, {listo.nombre}!
         </h2>
-        <p className="text-gray-700 mt-1">
-          {listo.staff ? "Quedaste registrado/a como comité / staff artístico en:" : "Tu lugar quedó registrado."}
-        </p>
-        {listo.eventos.map((ev) => (
+        <p className="text-gray-700 mt-1">Tu lugar quedó registrado.</p>
+        {/* Al comité / staff no se le muestra en qué función quedó */}
+        {!listo.staff && listo.eventos.map((ev) => (
           <div key={ev.id_evento} className="mt-3 rounded-xl bg-[#ffb127]/15 border border-[#ffb127]/50 px-4 py-3 text-left">
             <p className="font-semibold">{ev.nombre}</p>
             {(ev.fecha || ev.hora) && <p className="text-sm text-[#e03e00] font-medium">📅 {fechaLarga(ev.fecha, ev.hora)}</p>}
