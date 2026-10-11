@@ -48,3 +48,25 @@ export function lugaresLibres(cupo: number | null, usados: number) {
   if (cupo == null) return null;
   return Math.max(cupo - usados, 0);
 }
+
+// Teléfono: deja dígitos y un "+" inicial opcional.
+export function limpiarTelefono(v: string) {
+  const mas = v.trim().startsWith("+");
+  return (mas ? "+" : "") + v.replace(/\D/g, "").slice(0, 13);
+}
+
+// Mismo criterio que la base: 0981 123456, 981123456, +595 981 123456.
+export function telefonoValido(v: string) {
+  let d = v.replace(/\D/g, "");
+  if (d.startsWith("595")) d = "0" + d.slice(3);
+  if (!d.startsWith("0")) d = "0" + d;
+  return /^0[2-9]\d{7,8}$/.test(d);
+}
+
+export const FESTIVAL = {
+  mapa: "https://maps.app.goo.gl/HDeY53Ehgit6KUiL8",
+  whatsapp: "595981556611",
+  whatsappVisible: "+595 981 556611",
+  whatsappTexto:
+    "¡Hola! Me registré al Festival Soka por la Paz y quiero colaborar con víveres no perecederos. ¿Qué días y horarios puedo llevarlos al Centro Cultural?",
+};

@@ -9,8 +9,9 @@ type Registro = {
   cedula: string;
   nombre: string;
   apellido: string;
-  fecha_nacimiento: string | null;
+  telefono: string | null;
   es_miembro: boolean;
+  es_staff: boolean;
   creado_en: string;
 };
 
@@ -80,7 +81,7 @@ export default function EventosClient() {
       const [r, i] = await Promise.all([
         supabase
           .from("fest_registro")
-          .select("id_registro, cedula, nombre, apellido, fecha_nacimiento, es_miembro, creado_en")
+          .select("id_registro, cedula, nombre, apellido, telefono, es_miembro, es_staff, creado_en")
           .eq("id_evento", id)
           .order("creado_en", { ascending: false }),
         supabase
@@ -217,7 +218,7 @@ export default function EventosClient() {
       const [r, i] = await Promise.all([
         supabase
           .from("fest_registro")
-          .select("cedula, nombre, apellido, fecha_nacimiento, es_miembro, creado_en")
+          .select("cedula, nombre, apellido, telefono, es_miembro, es_staff, creado_en")
           .eq("id_evento", e.id_evento)
           .order("apellido"),
         supabase
@@ -234,8 +235,9 @@ export default function EventosClient() {
             Cédula: x.cedula,
             Nombre: x.nombre,
             Apellido: x.apellido,
-            "Fecha nac.": x.fecha_nacimiento ?? "",
+            Teléfono: x.telefono ?? "",
             Miembro: x.es_miembro ? "Sí" : "No",
+            "Comité / staff": x.es_staff ? "Sí" : "No",
             "Registrado el": new Date(x.creado_en).toLocaleString("es-PY"),
           }))
         ),
@@ -354,7 +356,7 @@ export default function EventosClient() {
                 <p className="text-xs text-gray-500">Ingresaron</p>
                 <p className="text-2xl font-bold text-green-700">{e.ingresados}</p>
                 <p className="text-xs text-gray-500">
-                  {e.ing_registrados} registrados · {e.ing_sin_registro} sin registro
+                  {e.ing_registrados} con registro · {e.ing_sin_registro} sin registro (espera)
                 </p>
                 {e.cupo != null && (
                   <>
@@ -450,7 +452,9 @@ export default function EventosClient() {
                       </span>
                       <span className="block text-xs text-gray-500">
                         CI {r.cedula}
+                        {r.telefono ? ` · ${r.telefono}` : ""}
                         {r.es_miembro ? " · miembro" : ""}
+                        {r.es_staff ? " · staff" : ""}
                       </span>
                     </span>
                     <span className="text-xs text-gray-400 whitespace-nowrap">

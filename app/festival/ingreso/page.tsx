@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { type EventoPublico, fechaCorta, limpiarCedula } from "@/lib/festival";
+import { type EventoPublico, fechaLarga, limpiarCedula } from "@/lib/festival";
 
 type Resultado =
   | { tipo: "ok"; registrado: boolean; nombre: string }
-  | { tipo: "ya_ingreso"; nombre: string }
+  | { tipo: "ya_ingreso"; registrado: boolean; nombre: string }
   | { tipo: "error"; mensaje: string };
 
 // KIOSKO de ingreso (abierto, sin login). Uso típico: una tablet en la entrada.
@@ -55,7 +55,7 @@ export default function IngresoFestivalPage() {
     timer.current = setTimeout(() => {
       setRes(null);
       inputRef.current?.focus();
-    }, r.tipo === "ok" ? 2500 : 4000);
+    }, r.tipo === "ok" && r.registrado ? 2500 : 6000);
   }
 
   async function ingresar() {
@@ -73,7 +73,7 @@ export default function IngresoFestivalPage() {
     if (error || !r) return mostrar({ tipo: "error", mensaje: "Sin conexión. Probá de nuevo." });
 
     if (r.estado === "ok") mostrar({ tipo: "ok", registrado: !!r.registrado, nombre: r.nombre ?? "" });
-    else if (r.estado === "ya_ingreso") mostrar({ tipo: "ya_ingreso", nombre: r.nombre ?? "" });
+    else if (r.estado === "ya_ingreso") mostrar({ tipo: "ya_ingreso", registrado: !!r.registrado, nombre: r.nombre ?? "" });
     else if (r.estado === "evento_inactivo") mostrar({ tipo: "error", mensaje: "Este evento ya no está activo." });
     else mostrar({ tipo: "error", mensaje: "Número de cédula inválido." });
 
@@ -94,19 +94,19 @@ export default function IngresoFestivalPage() {
   // Paso 1: elegir el evento (lo hace el voluntario al armar el kiosko)
   if (!evento) {
     return (
-      <main className="max-w-md mx-auto px-4 py-10 text-white">
-        <h1 className="text-2xl font-bold text-center mb-6">Ingreso — ¿qué evento?</h1>
-        {eventos.length === 0 && <p className="text-center opacity-80">No hay eventos activos.</p>}
+      <main className="px-4 pb-10">
+        <h1 className="text-2xl font-extrabold text-center mb-4 text-white drop-shadow">Confirmación de ingreso</h1>
+        {eventos.length === 0 && <p className="text-center text-white">No hay eventos activos.</p>}
         <div className="space-y-3">
           {eventos.map((ev) => (
             <button
               key={ev.id_evento}
               onClick={() => setIdEvento(ev.id_evento)}
-              className="w-full bg-white text-gray-900 rounded-2xl px-5 py-4 text-left shadow"
+              className="w-full bg-white/95 text-gray-900 rounded-2xl px-5 py-4 text-left shadow-xl"
             >
               <span className="block font-semibold text-lg">{ev.nombre}</span>
               <span className="block text-sm text-gray-500">
-                {[fechaCorta(ev.fecha), ev.hora, ev.lugar].filter(Boolean).join(" · ")}
+                {[fechaLarga(ev.fecha, ev.hora), ev.lugar].filter(Boolean).join(" · ")}
               </span>
             </button>
           ))}
@@ -118,20 +118,18 @@ export default function IngresoFestivalPage() {
   const teclas = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "OK"];
 
   return (
-    <main className="max-w-md mx-auto px-4 py-6 text-white min-h-screen flex flex-col">
-      <header className="text-center">
-        <p className="text-sm uppercase tracking-widest opacity-80">Festival Soka por la Paz</p>
-        <h1 className="text-xl font-bold">{evento.nombre}</h1>
-        <p className="text-sm opacity-80 mt-1">Ingresaron: {evento.ingresados}</p>
-      </header>
-
-      <div className="mt-6 bg-white text-gray-900 rounded-2xl p-5 shadow-lg">
-        <p className="text-center text-gray-600">Escribí tu número de cédula</p>
+    <main className="px-4 pb-8 flex flex-col">
+      <div className="bg-white/95 backdrop-blur text-gray-900 rounded-3xl p-5 shadow-2xl">
+        <header className="text-center">
+          <h1 className="text-lg font-extrabold text-[#f11579]">{evento.nombre}</h1>
+          <p className="text-xs text-gray-500">Confirmación de ingreso · Ingresaron: {evento.ingresados}</p>
+        </header>
+        <p className="text-center text-gray-700 mt-3 font-medium">Escribí tu número de cédula</p>
         <input
           ref={inputRef}
           autoFocus
           inputMode="none"
-          className="mt-3 w-full text-center text-4xl font-bold tracking-widest py-3 border-b-2 border-gray-200 focus:outline-none focus:border-marca"
+          className="mt-3 w-full text-center text-4xl font-bold tracking-widest py-3 border-b-2 border-gray-200 focus:outline-none focus:border-[#f11579]"
           value={cedula}
           placeholder="—"
           onChange={(e) => setCedula(limpiarCedula(e.target.value))}
@@ -143,8 +141,8 @@ export default function IngresoFestivalPage() {
               key={k}
               onClick={() => tecla(k)}
               disabled={enviando}
-              className={`rounded-xl py-5 text-2xl font-semibold active:scale-95 transition ${
-                k === "OK" ? "bg-marca text-white" : "bg-gray-100"
+              className={`rounded-xl py-4 text-2xl font-semibold active:scale-95 transition ${
+                k === "OK" ? "bg-[#f11579] text-white text-xl" : "bg-gray-100"
               }`}
             >
               {k === "OK" ? (enviando ? "…" : "Entrar") : k}
@@ -154,34 +152,69 @@ export default function IngresoFestivalPage() {
       </div>
 
       {!fijo && eventos.length > 1 && (
-        <button onClick={() => setIdEvento(null)} className="mt-auto pt-6 text-sm opacity-70 underline">
+        <button onClick={() => setIdEvento(null)} className="mt-4 text-sm text-white/90 underline drop-shadow">
           Cambiar evento
         </button>
       )}
 
-      {res && (
-        <div
-          onClick={() => setRes(null)}
-          className={`fixed inset-0 flex flex-col items-center justify-center text-center px-6 ${
-            res.tipo === "ok" ? "bg-green-600" : res.tipo === "ya_ingreso" ? "bg-amber-500" : "bg-red-600"
-          }`}
-        >
-          <div className="text-7xl mb-4">{res.tipo === "ok" ? "✅" : res.tipo === "ya_ingreso" ? "👋" : "⚠️"}</div>
-          {res.tipo === "ok" && (
-            <>
-              <p className="text-3xl font-bold">¡Bienvenido/a{res.nombre ? `, ${res.nombre}` : ""}!</p>
-              <p className="text-lg mt-2 opacity-90">Ingreso registrado</p>
-            </>
-          )}
-          {res.tipo === "ya_ingreso" && (
-            <>
-              <p className="text-3xl font-bold">Esta cédula ya ingresó</p>
-              <p className="text-lg mt-2 opacity-90">Si es un error, avisá a un voluntario.</p>
-            </>
-          )}
-          {res.tipo === "error" && <p className="text-2xl font-bold">{res.mensaje}</p>}
-        </div>
-      )}
+      {res && <Pantalla res={res} onCerrar={() => setRes(null)} />}
     </main>
+  );
+}
+
+// Pantalla de resultado a pantalla completa
+function Pantalla({ res, onCerrar }: { res: Resultado; onCerrar: () => void }) {
+  let fondo = "bg-red-600";
+  let icono = "⚠️";
+  let titulo: React.ReactNode = null;
+  let detalle: React.ReactNode = null;
+
+  if (res.tipo === "ok" && res.registrado) {
+    fondo = "bg-green-600";
+    icono = "✅";
+    titulo = `¡Bienvenido/a${res.nombre ? `, ${res.nombre}` : ""}!`;
+    detalle = (
+      <>
+        <span className="inline-block mt-3 rounded-full bg-white/20 px-4 py-1 font-bold tracking-wide">
+          ⭐ ACCESO PRIORITARIO
+        </span>
+        <span className="block mt-3">Registro previo confirmado. Puede ingresar.</span>
+      </>
+    );
+  } else if (res.tipo === "ok") {
+    // Vino sin registro previo: queda anotado, pero debe aguardar
+    fondo = "bg-amber-500";
+    icono = "⏳";
+    titulo = "Sin registro previo";
+    detalle = (
+      <>
+        <span className="block mt-2">Esta persona <b>no se registró</b> antes del evento.</span>
+        <span className="block mt-3 rounded-2xl bg-black/15 px-5 py-3 font-semibold">
+          Por favor, aguardá tu turno. Las personas con registro previo tienen prioridad de ingreso. Un voluntario te indicará
+          cuándo pasar.
+        </span>
+      </>
+    );
+  } else if (res.tipo === "ya_ingreso") {
+    fondo = "bg-slate-700";
+    icono = "👋";
+    titulo = "Esta cédula ya fue confirmada";
+    detalle = res.registrado
+      ? "Ya ingresó con registro previo. Si es un error, avisá a un voluntario."
+      : "Ya está anotada en la lista de espera (sin registro previo).";
+  } else {
+    titulo = res.mensaje;
+  }
+
+  return (
+    <div
+      onClick={onCerrar}
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center text-center px-6 text-white ${fondo}`}
+    >
+      <div className="text-7xl mb-4">{icono}</div>
+      <p className="text-3xl font-extrabold">{titulo}</p>
+      {detalle && <div className="text-lg mt-2 max-w-md opacity-95">{detalle}</div>}
+      <p className="absolute bottom-6 text-sm opacity-70">Tocá la pantalla para continuar</p>
+    </div>
   );
 }
