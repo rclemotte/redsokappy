@@ -64,7 +64,7 @@ export default function RegistroFestivalPage() {
     setErr(null);
     if (cedula.length < 4) return setErr("Ingresá tu número de cédula.");
     if (!nombre.trim() || !apellido.trim()) return setErr("Completá nombre y apellido.");
-    if (!telefonoValido(telefono)) return setErr("Ingresá un teléfono válido. Ej.: 0981 123456");
+    if (!telefonoValido(telefono)) return setErr("Ingresá un teléfono válido. Ej.: 0981 123456. Si es del exterior, con + y código de país: +54 9 3718 518121");
     if (esMiembro === null) return setErr("Indicá si sos miembro de la Soka Gakkai.");
     if (esMiembro && esStaff === null) return setErr("Indicá si pertenecés a un comité / staff artístico.");
     if (!staff && todoLleno) return setErr("Se completaron los cupos de todas las funciones.");
@@ -174,6 +174,9 @@ export default function RegistroFestivalPage() {
                 value={telefono}
                 onChange={(e) => setTelefono(limpiarTelefono(e.target.value))}
               />
+              <span className="block text-xs text-gray-500 mt-1">
+                Si tu número es del exterior, escribilo con + y el código de país (ej. +54 9 3718 518121).
+              </span>
             </label>
 
             {/* 3) Membresía */}

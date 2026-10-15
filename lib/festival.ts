@@ -54,12 +54,15 @@ export function lugaresLibres(cupo: number | null, usados: number) {
 // Teléfono: deja dígitos y un "+" inicial opcional.
 export function limpiarTelefono(v: string) {
   const mas = v.trim().startsWith("+");
-  return (mas ? "+" : "") + v.replace(/\D/g, "").slice(0, 13);
+  return (mas ? "+" : "") + v.replace(/\D/g, "").slice(0, 15);
 }
 
-// Mismo criterio que la base: 0981 123456, 981123456, +595 981 123456.
+// Mismo criterio que la base:
+//  * Paraguay: 0981 123456, 981123456, +595 981 123456
+//  * Exterior: "+" + código de país, 8 a 15 dígitos (ej. +54 9 3718 518121)
 export function telefonoValido(v: string) {
   let d = v.replace(/\D/g, "");
+  if (v.trim().startsWith("+") && !d.startsWith("595")) return d.length >= 8 && d.length <= 15;
   if (d.startsWith("595")) d = "0" + d.slice(3);
   if (!d.startsWith("0")) d = "0" + d;
   return /^0[2-9]\d{7,8}$/.test(d);
