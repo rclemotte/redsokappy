@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
   FESTIVAL,
@@ -30,6 +31,7 @@ export default function RegistroFestivalPage() {
 
   const [enviando, setEnviando] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [yaRegistrado, setYaRegistrado] = useState(false);
   const [listo, setListo] = useState<{ nombre: string; eventos: EventoPublico[]; staff: boolean } | null>(null);
 
   const lleno = (ev: EventoPublico) => ev.cupo != null && ev.registrados >= ev.cupo;
@@ -62,6 +64,7 @@ export default function RegistroFestivalPage() {
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
+    setYaRegistrado(false);
     if (cedula.length < 4) return setErr("Ingresá tu número de cédula.");
     if (!nombre.trim() || !apellido.trim()) return setErr("Completá nombre y apellido.");
     if (!telefonoValido(telefono)) return setErr("Ingresá un teléfono válido. Ej.: 0981 123456. Si es del exterior, con + y código de país: +54 9 3718 518121");
@@ -86,6 +89,7 @@ export default function RegistroFestivalPage() {
     if (error || !r) return setErr("No pudimos registrarte. Probá de nuevo en un momento.");
     if (!r.ok) {
       if (r.codigo === "cupo_completo") cargarEventos();
+      setYaRegistrado(r.codigo === "ya_registrado");
       return setErr(r.error ?? "No pudimos registrarte.");
     }
 
@@ -243,7 +247,19 @@ export default function RegistroFestivalPage() {
               </div>
             </div>
 
-            {err && <p className="text-red-600 text-sm font-medium">{err}</p>}
+            {err && (
+              <p className="text-red-600 text-sm font-medium">
+                {err}
+                {yaRegistrado && (
+                  <>
+                    {" "}
+                    <Link href="/festival/consulta" className="underline">
+                      Consultá tu registro acá.
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
 
             <button
               type="submit"
@@ -253,6 +269,13 @@ export default function RegistroFestivalPage() {
             >
               {enviando ? "Registrando…" : "Registrarme"}
             </button>
+
+            <p className="text-center text-sm text-gray-600">
+              ¿Ya te registraste y no recordás en qué función?{" "}
+              <Link href="/festival/consulta" className="font-semibold underline" style={{ color: ROSA }}>
+                Consultá acá
+              </Link>
+            </p>
           </form>
         )}
       </section>
