@@ -271,9 +271,9 @@ export default function RegistroFestivalPage() {
             </button>
 
             <p className="text-center text-sm text-gray-600">
-              ¿Ya te registraste y no recordás en qué función?{" "}
+              ¿Ya te registraste? Consultá tu función, cambiala o anulá tu registro{" "}
               <Link href="/festival/consulta" className="font-semibold underline" style={{ color: ROSA }}>
-                Consultá acá
+                acá
               </Link>
             </p>
           </form>
