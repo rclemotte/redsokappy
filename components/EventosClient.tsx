@@ -199,6 +199,87 @@ export default function EventosClient() {
     cargarDetalle(sel);
   }
 
+  // Listado único de registrados (una fila por persona; el staff figura una vez con "Ambas").
+  // Sin acentos en encabezados ni textos, para que se lea bien en cualquier Excel.
+  const [bajandoListado, setBajandoListado] = useState(false);
+  async function exportarListado() {
+    setBajandoListado(true);
+    try {
+      const sinAcentos = (v: string | null | undefined) =>
+        (v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      // Supabase devuelve hasta 1000 filas por pedido: se trae por páginas
+      type Fila = {
+        cedula: string; nombre: string; apellido: string; telefono: string | null;
+        es_miembro: boolean; es_staff: boolean; creado_en: string; id_evento: number;
+      };
+      const filas: Fila[] = [];
+      for (let desde = 0; ; desde += 1000) {
+        const { data, error } = await supabase
+          .from("fest_registro")
+          .select("cedula, nombre, apellido, telefono, es_miembro, es_staff, creado_en, id_evento")
+          .order("id_registro")
+          .range(desde, desde + 999);
+        if (error) throw error;
+        filas.push(...((data as Fila[]) ?? []));
+        if (!data || data.length < 1000) break;
+      }
+      const nombreEvento = new Map(resumen.map((e) => [e.id_evento, e.nombre]));
+
+      // Agrupar por persona (igual que el select: cedula + nombre + apellido + telefono + miembro)
+      const grupos = new Map<string, { f: Fila; staff: boolean; eventos: number[]; desde: string }>();
+      for (const f of filas) {
+        const k = [f.cedula, f.nombre, f.apellido, f.telefono, f.es_miembro].join("|");
+        const g = grupos.get(k);
+        if (!g) grupos.set(k, { f, staff: f.es_staff, eventos: [f.id_evento], desde: f.creado_en });
+        else {
+          g.staff = g.staff || f.es_staff;
+          g.eventos.push(f.id_evento);
+          if (f.creado_en < g.desde) g.desde = f.creado_en;
+        }
+      }
+
+      const fmtFecha = (ts: string) =>
+        new Date(ts).toLocaleString("es-PY", {
+          timeZone: "America/Asuncion", day: "2-digit", month: "2-digit", year: "numeric",
+          hour: "2-digit", minute: "2-digit", hour12: false,
+        }).replace(",", "");
+
+      const filasExcel = Array.from(grupos.values())
+        .sort(
+          (a, b) =>
+            Number(b.staff) - Number(a.staff) ||
+            sinAcentos(a.f.apellido).localeCompare(sinAcentos(b.f.apellido)) ||
+            sinAcentos(a.f.nombre).localeCompare(sinAcentos(b.f.nombre))
+        )
+        .map((g) => ({
+          Cedula: g.f.cedula,
+          Nombre: sinAcentos(g.f.nombre),
+          Apellido: sinAcentos(g.f.apellido),
+          Telefono: g.f.telefono ?? "",
+          Miembro: g.f.es_miembro ? "Si" : "No",
+          "Comite / staff": g.staff ? "Si" : "No",
+          Funcion: g.staff
+            ? "Ambas"
+            : sinAcentos(
+                [...g.eventos].sort((x, y) => x - y).map((id) => nombreEvento.get(id) ?? `Evento ${id}`).join(", ")
+              ),
+          "Registrado el": fmtFecha(g.desde),
+        }));
+
+      const XLSX = await import("xlsx");
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(filasExcel);
+      ws["!cols"] = [12, 18, 18, 16, 9, 14, 34, 17].map((wch) => ({ wch }));
+      XLSX.utils.book_append_sheet(wb, ws, "Registrados");
+      XLSX.writeFile(wb, `registrados_festival_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch {
+      alert("No se pudo generar el listado. Probá de nuevo.");
+    } finally {
+      setBajandoListado(false);
+    }
+  }
+
   async function exportar() {
     const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
@@ -416,6 +497,13 @@ export default function EventosClient() {
         <div className="flex gap-2 pt-2">
           <button onClick={exportar} className="flex-1 rounded-lg border border-marca text-marca py-2 font-medium">
             Exportar Excel
+          </button>
+          <button
+            onClick={exportarListado}
+            disabled={bajandoListado}
+            className="flex-1 rounded-lg border border-marca text-marca py-2 font-medium disabled:opacity-60"
+          >
+            {bajandoListado ? "Generando…" : "Listado de registrados"}
           </button>
           <button
             onClick={() => {
