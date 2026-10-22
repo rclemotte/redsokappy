@@ -68,6 +68,15 @@ export function telefonoValido(v: string) {
   return /^0[2-9]\d{7,8}$/.test(d);
 }
 
+// Normaliza igual que la base: 0981123456 (Paraguay) / +5493718518121 (exterior)
+export function normalizarTelefono(v: string) {
+  let d = v.replace(/\D/g, "");
+  if (v.trim().startsWith("+") && !d.startsWith("595")) return "+" + d;
+  if (d.startsWith("595")) d = "0" + d.slice(3);
+  if (!d.startsWith("0")) d = "0" + d;
+  return d;
+}
+
 export const FESTIVAL = {
   mapa: "https://maps.app.goo.gl/HDeY53Ehgit6KUiL8",
   whatsapp: "595981556611",

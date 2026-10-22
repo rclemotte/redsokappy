@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { type ResumenEvento, fechaCorta, lugaresLibres } from "@/lib/festival";
+import {
+  type ResumenEvento,
+  fechaCorta,
+  limpiarCedula,
+  limpiarTelefono,
+  lugaresLibres,
+  normalizarTelefono,
+  telefonoValido,
+} from "@/lib/festival";
 
 type Registro = {
   id_registro: number;
@@ -13,6 +21,16 @@ type Registro = {
   es_miembro: boolean;
   es_staff: boolean;
   creado_en: string;
+};
+
+type RegistroForm = {
+  original: Registro;
+  cedula: string;
+  nombre: string;
+  apellido: string;
+  telefono: string;
+  es_miembro: boolean;
+  id_evento: number;
 };
 
 type Ingreso = {
@@ -190,6 +208,76 @@ export default function EventosClient() {
     if (error) return setErr(error.message);
     setForm(null);
     cargarResumen();
+  }
+
+  // ---------- Editar / anular registros ----------
+  const [regForm, setRegForm] = useState<RegistroForm | null>(null);
+  const [regErr, setRegErr] = useState<string | null>(null);
+  const [regGuardando, setRegGuardando] = useState(false);
+
+  function editarRegistro(r: Registro) {
+    setRegErr(null);
+    setRegForm({
+      original: r,
+      cedula: r.cedula,
+      nombre: r.nombre,
+      apellido: r.apellido,
+      telefono: r.telefono ?? "",
+      es_miembro: r.es_miembro,
+      id_evento: sel ?? 0,
+    });
+  }
+
+  async function guardarRegistro() {
+    if (!regForm) return;
+    setRegErr(null);
+    const ced = limpiarCedula(regForm.cedula);
+    if (ced.length < 4) return setRegErr("Cédula inválida.");
+    if (!regForm.nombre.trim() || !regForm.apellido.trim()) return setRegErr("Completá nombre y apellido.");
+    if (!telefonoValido(regForm.telefono)) return setRegErr("Teléfono inválido.");
+    const o = regForm.original;
+    const datos = {
+      cedula: ced,
+      nombre: regForm.nombre.trim(),
+      apellido: regForm.apellido.trim(),
+      telefono: normalizarTelefono(regForm.telefono),
+      es_miembro: o.es_staff ? true : regForm.es_miembro,
+      actualizado_en: new Date().toISOString(),
+    };
+    setRegGuardando(true);
+    // El staff tiene un registro por función: se corrigen todos juntos
+    const q = o.es_staff
+      ? supabase.from("fest_registro").update(datos).eq("cedula", o.cedula).eq("es_staff", true)
+      : supabase
+          .from("fest_registro")
+          .update({ ...datos, id_evento: regForm.id_evento })
+          .eq("id_registro", o.id_registro);
+    const { error } = await q;
+    setRegGuardando(false);
+    if (error) {
+      return setRegErr(
+        error.code === "23505"
+          ? "Ya existe un registro con esa cédula en esa función."
+          : `No se pudo guardar: ${error.message}`
+      );
+    }
+    setRegForm(null);
+    cargarResumen();
+    cargarDetalle(sel);
+  }
+
+  async function anularRegistro(r: Registro) {
+    const msj = r.es_staff
+      ? `¿Anular el registro de ${r.nombre} ${r.apellido} (CI ${r.cedula})?\nEs comité / staff: se borra de todas las funciones.`
+      : `¿Anular el registro de ${r.nombre} ${r.apellido} (CI ${r.cedula})?`;
+    if (!confirm(msj)) return;
+    const { error } = r.es_staff
+      ? await supabase.from("fest_registro").delete().eq("cedula", r.cedula).eq("es_staff", true)
+      : await supabase.from("fest_registro").delete().eq("id_registro", r.id_registro);
+    if (error) return alert(`No se pudo anular: ${error.message}`);
+    setRegForm(null);
+    cargarResumen();
+    cargarDetalle(sel);
   }
 
   async function anularIngreso(i: Ingreso) {
@@ -555,8 +643,16 @@ export default function EventosClient() {
                         {r.es_staff ? " · staff" : ""}
                       </span>
                     </span>
-                    <span className="text-xs text-gray-400 whitespace-nowrap">
-                      {new Date(r.creado_en).toLocaleDateString("es-PY")}
+                    <span className="text-right whitespace-nowrap">
+                      <span className="block text-xs text-gray-400">
+                        {new Date(r.creado_en).toLocaleDateString("es-PY")}
+                      </span>
+                      <button onClick={() => editarRegistro(r)} className="text-xs text-marca font-semibold mr-3">
+                        Editar
+                      </button>
+                      <button onClick={() => anularRegistro(r)} className="text-xs text-red-500">
+                        Anular
+                      </button>
                     </span>
                   </li>
                 ))}
@@ -584,6 +680,93 @@ export default function EventosClient() {
                 <li className="py-6 text-center text-sm text-gray-400">Sin datos todavía.</li>
               )}
             </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Modal edición de registro */}
+      {regForm && (
+        <div
+          className="fixed inset-0 bg-black/40 z-20 flex items-end sm:items-center justify-center"
+          onClick={() => setRegForm(null)}
+        >
+          <div className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-bold text-lg">Editar registro</h2>
+            {regForm.original.es_staff && (
+              <p className="text-xs rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-amber-800">
+                Comité / staff: los cambios se aplican en todas las funciones.
+              </p>
+            )}
+            <label className="block text-sm">
+              Cédula
+              <input
+                inputMode="numeric"
+                className={input}
+                value={regForm.cedula}
+                onChange={(e) => setRegForm({ ...regForm, cedula: limpiarCedula(e.target.value) })}
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-sm">
+                Nombre
+                <input className={input} value={regForm.nombre} onChange={(e) => setRegForm({ ...regForm, nombre: e.target.value })} />
+              </label>
+              <label className="block text-sm">
+                Apellido
+                <input className={input} value={regForm.apellido} onChange={(e) => setRegForm({ ...regForm, apellido: e.target.value })} />
+              </label>
+            </div>
+            <label className="block text-sm">
+              Teléfono
+              <input
+                type="tel"
+                className={input}
+                value={regForm.telefono}
+                onChange={(e) => setRegForm({ ...regForm, telefono: limpiarTelefono(e.target.value) })}
+              />
+            </label>
+            {!regForm.original.es_staff && (
+              <>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={regForm.es_miembro}
+                    onChange={(e) => setRegForm({ ...regForm, es_miembro: e.target.checked })}
+                  />
+                  Es miembro de la Soka Gakkai
+                </label>
+                <label className="block text-sm">
+                  Función
+                  <select
+                    className={input}
+                    value={regForm.id_evento}
+                    onChange={(e) => setRegForm({ ...regForm, id_evento: Number(e.target.value) })}
+                  >
+                    {resumen.map((e) => (
+                      <option key={e.id_evento} value={e.id_evento}>
+                        {e.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
+            {regErr && <p className="text-sm text-red-600">{regErr}</p>}
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => anularRegistro(regForm.original)} className="rounded-lg border border-red-300 text-red-600 px-3 py-2">
+                Anular
+              </button>
+              <button onClick={() => setRegForm(null)} className="flex-1 rounded-lg border py-2">
+                Cancelar
+              </button>
+              <button
+                onClick={guardarRegistro}
+                disabled={regGuardando}
+                className="flex-1 rounded-lg bg-marca text-white py-2 disabled:opacity-60"
+              >
+                {regGuardando ? "Guardando…" : "Guardar"}
+              </button>
+            </div>
           </div>
         </div>
       )}
