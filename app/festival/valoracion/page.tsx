@@ -96,6 +96,13 @@ export default function ValoracionFestival() {
           <div className="mt-5 rounded-2xl bg-[#f11579]/10 px-4 py-3 font-bold" style={{ color: ROSA }}>
             ¡Juntos construimos una cultura de paz!
           </div>
+          <figure className="mt-6 border-t border-dashed pt-5">
+            <blockquote className="text-sm italic text-gray-600 leading-relaxed">
+              «La fuente de luz necesaria para disipar el caos y la oscuridad de la época se encuentra en las acciones que
+              hacen surgir nuestra propia luz interior, cuando actuamos en bien de otras personas».
+            </blockquote>
+            <figcaption className="mt-2 text-xs font-semibold text-gray-500">— Daisaku Ikeda</figcaption>
+          </figure>
           <p className="mt-5 text-xs text-gray-500">🔒 Tu opinión será utilizada únicamente para mejorar nuestros próximos eventos.</p>
           <button
             onClick={otra}
