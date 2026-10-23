@@ -582,6 +582,12 @@ export default function EventosClient() {
             </span>
           </div>
         )}
+        <a
+          href="/valoraciones"
+          className="block w-full text-center rounded-lg bg-amber-50 border border-amber-200 text-amber-800 py-2 font-medium"
+        >
+          ⭐ Ver valoraciones del Festival
+        </a>
         <div className="flex gap-2 pt-2">
           <button onClick={exportar} className="flex-1 rounded-lg border border-marca text-marca py-2 font-medium">
             Exportar Excel
