@@ -24,7 +24,7 @@ export default function ValoracionFestival() {
   const [eventos, setEventos] = useState<EventoPublico[]>([]);
   const [cargando, setCargando] = useState(true);
 
-  const [idEvento, setIdEvento] = useState<number | null>(null);
+  const [elegidos, setElegidos] = useState<number[]>([]);
   const [general, setGeneral] = useState(0);
   const [areas, setAreas] = useState<Record<AreaK, number>>({ organizacion: 0, presentaciones: 0, comodidad: 0 });
   const [comentario, setComentario] = useState("");
@@ -47,14 +47,14 @@ export default function ValoracionFestival() {
     e.preventDefault();
     setErr(null);
     const f: string[] = [];
-    if (!idEvento) f.push("la función a la que asististe");
+    if (elegidos.length === 0) f.push("la función a la que asististe");
     if (!general) f.push("la calificación general");
     setFaltan(f);
     if (f.length) return;
 
     setEnviando(true);
     const { data, error } = await supabase.rpc("fest_valorar", {
-      p_evento: idEvento,
+      p_eventos: elegidos,
       p_general: general,
       p_organizacion: areas.organizacion || null,
       p_presentaciones: areas.presentaciones || null,
@@ -71,7 +71,7 @@ export default function ValoracionFestival() {
   }
 
   function otra() {
-    setIdEvento(null);
+    setElegidos([]);
     setGeneral(0);
     setAreas({ organizacion: 0, presentaciones: 0, comodidad: 0 });
     setComentario("");
@@ -128,18 +128,19 @@ export default function ValoracionFestival() {
           <p className="font-semibold">
             ¿A qué función asististe? <span style={{ color: ROSA }}>*</span>
           </p>
+          <p className="text-sm text-gray-500">Si fuiste a las dos, marcá ambas.</p>
           {cargando ? (
             <p className="text-gray-500 text-sm mt-2">Cargando…</p>
           ) : (
             <div className="mt-3 space-y-2">
               {eventos.map((ev, i) => {
-                const sel = idEvento === ev.id_evento;
+                const sel = elegidos.includes(ev.id_evento);
                 return (
                   <button
                     type="button"
                     key={ev.id_evento}
                     onClick={() => {
-                      setIdEvento(ev.id_evento);
+                      setElegidos((xs) => (xs.includes(ev.id_evento) ? xs.filter((x) => x !== ev.id_evento) : [...xs, ev.id_evento]));
                       setFaltan((f) => f.filter((x) => !x.startsWith("la función")));
                     }}
                     className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition ${
@@ -151,7 +152,7 @@ export default function ValoracionFestival() {
                         sel ? "bg-[#f11579] text-white" : "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {i + 1}
+                      {sel ? "✓" : i + 1}
                     </span>
                     <span>
                       <span className="block font-semibold">

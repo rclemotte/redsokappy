@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 type Val = {
   id_valoracion: number;
   id_evento: number;
+  eventos: number[] | null;
   general: number;
   organizacion: number | null;
   presentaciones: number | null;
@@ -62,7 +63,10 @@ export default function ValoracionesClient() {
   }, [cargar]);
 
   const nombreEv = useMemo(() => new Map(eventos.map((e) => [e.id_evento, corto(e.nombre)])), [eventos]);
-  const vista = sel === "todas" ? vals : vals.filter((v) => v.id_evento === sel);
+  const funcs = (v: Val) => (v.eventos?.length ? v.eventos : [v.id_evento]);
+  const etiquetaFunc = (v: Val) =>
+    funcs(v).length > 1 ? "Ambas" : nombreEv.get(funcs(v)[0]) ?? String(funcs(v)[0]);
+  const vista = sel === "todas" ? vals : vals.filter((v) => funcs(v).includes(sel));
   const general = prom(vista.map((v) => v.general));
   const dist = [5, 4, 3, 2, 1].map((n) => ({ n, c: vista.filter((v) => v.general === n).length }));
   const satisfechos = vista.length ? Math.round((vista.filter((v) => v.general >= 4).length / vista.length) * 100) : 0;
@@ -77,7 +81,7 @@ export default function ValoracionesClient() {
   async function exportar() {
     const XLSX = await import("xlsx");
     const filas = vals.map((v) => ({
-      Funcion: nombreEv.get(v.id_evento) ?? v.id_evento,
+      Funcion: etiquetaFunc(v),
       General: v.general,
       Organizacion: v.organizacion ?? "",
       Presentaciones: v.presentaciones ?? "",
@@ -226,7 +230,7 @@ export default function ValoracionesClient() {
                   <span className="text-gray-200">{"★".repeat(5 - v.general)}</span>
                 </span>
                 <span className="text-xs text-gray-400">
-                  {nombreEv.get(v.id_evento)} ·{" "}
+                  {etiquetaFunc(v)} ·{" "}
                   {new Date(v.creado_en).toLocaleString("es-PY", {
                     day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
                   })}
