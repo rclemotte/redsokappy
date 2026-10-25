@@ -19,6 +19,13 @@ type AreaK = (typeof AREAS)[number]["k"];
 // "Festival por la Paz — Función 1" -> "Función 1"
 const corto = (n: string) => n.split("—").pop()!.trim();
 
+const MEDIOS = [
+  { v: "REDES", l: "Redes sociales" },
+  { v: "AMIGO", l: "Me invitó un amigo/a" },
+  { v: "MIEMBRO", l: "Soy miembro" },
+  { v: "OTRO", l: "Otros" },
+];
+
 export default function ValoracionFestival() {
   const supabase = createClient();
   const [eventos, setEventos] = useState<EventoPublico[]>([]);
@@ -29,6 +36,8 @@ export default function ValoracionFestival() {
   const [areas, setAreas] = useState<Record<AreaK, number>>({ organizacion: 0, presentaciones: 0, comodidad: 0 });
   const [comentario, setComentario] = useState("");
   const [nombre, setNombre] = useState("");
+  const [medio, setMedio] = useState("");
+  const [medioOtro, setMedioOtro] = useState("");
 
   const [faltan, setFaltan] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -53,7 +62,7 @@ export default function ValoracionFestival() {
     if (f.length) return;
 
     setEnviando(true);
-    const { data, error } = await supabase.rpc("fest_valorar", {
+    const base = {
       p_eventos: elegidos,
       p_general: general,
       p_organizacion: areas.organizacion || null,
@@ -61,7 +70,16 @@ export default function ValoracionFestival() {
       p_comodidad: areas.comodidad || null,
       p_comentario: comentario,
       p_nombre: nombre,
+    };
+    let { data, error } = await supabase.rpc("fest_valorar", {
+      ...base,
+      p_medio: medio || null,
+      p_medio_otro: medio === "OTRO" ? medioOtro : null,
     });
+    // Si la base todavía no tiene la pregunta nueva, se envía igual sin ese dato
+    if (error && (error.code === "PGRST202" || /function|schema cache/i.test(error.message))) {
+      ({ data, error } = await supabase.rpc("fest_valorar", base));
+    }
     setEnviando(false);
     const r = data as { ok: boolean; error?: string } | null;
     if (error || !r) return setErr("No pudimos enviar tu opinión. Probá de nuevo en un momento.");
@@ -76,6 +94,8 @@ export default function ValoracionFestival() {
     setAreas({ organizacion: 0, presentaciones: 0, comodidad: 0 });
     setComentario("");
     setNombre("");
+    setMedio("");
+    setMedioOtro("");
     setFaltan([]);
     setErr(null);
     setEnviado(false);
@@ -208,6 +228,38 @@ export default function ValoracionFestival() {
               </div>
             ))}
           </div>
+        </section>
+
+        {/* ¿Por qué medio te enteraste? (opcional) */}
+        <section className={tarjeta}>
+          <p className="font-semibold">¿Por qué medio te enteraste del Festival?</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {MEDIOS.map((m) => {
+              const sel = medio === m.v;
+              return (
+                <button
+                  type="button"
+                  key={m.v}
+                  onClick={() => setMedio(sel ? "" : m.v)}
+                  className={`rounded-xl border-2 px-3 py-3 text-sm font-semibold transition ${
+                    sel ? "border-[#f11579] bg-[#f11579] text-white" : "border-gray-200 text-gray-700"
+                  }`}
+                >
+                  {m.l}
+                </button>
+              );
+            })}
+          </div>
+          {medio === "OTRO" && (
+            <input
+              maxLength={100}
+              autoFocus
+              className="mt-3 w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#f11579] focus:border-transparent"
+              placeholder="¿Cuál? (ej. radio, afiche, la escuela…)"
+              value={medioOtro}
+              onChange={(e) => setMedioOtro(e.target.value)}
+            />
+          )}
         </section>
 
         {/* 05 Comentario + 06 Nombre */}

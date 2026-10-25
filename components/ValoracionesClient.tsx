@@ -12,6 +12,8 @@ type Val = {
   organizacion: number | null;
   presentaciones: number | null;
   comodidad: number | null;
+  medio?: string | null;
+  medio_otro?: string | null;
   comentario: string | null;
   nombre: string | null;
   creado_en: string;
@@ -24,6 +26,12 @@ const AREAS = [
   { k: "comodidad", l: "Comodidad del lugar" },
 ] as const;
 const corto = (n: string) => n.split("—").pop()!.trim();
+const MEDIOS: Record<string, string> = {
+  REDES: "Redes sociales",
+  AMIGO: "Me invitó un amigo/a",
+  MIEMBRO: "Soy miembro",
+  OTRO: "Otros",
+};
 const prom = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 const fmt1 = (n: number) => n.toLocaleString("es-PY", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -86,6 +94,8 @@ export default function ValoracionesClient() {
       Organizacion: v.organizacion ?? "",
       Presentaciones: v.presentaciones ?? "",
       Comodidad: v.comodidad ?? "",
+      "Se entero por": v.medio ? MEDIOS[v.medio] ?? v.medio : "",
+      "Otro medio": v.medio_otro ?? "",
       Comentario: v.comentario ?? "",
       Nombre: v.nombre ?? "",
       Fecha: new Date(v.creado_en).toLocaleString("es-PY", { timeZone: "America/Asuncion", hour12: false }),
@@ -172,6 +182,41 @@ export default function ValoracionesClient() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Medio por el que se enteró */}
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-xs text-gray-500 mb-2">¿Por qué medio se enteraron?</p>
+            {(() => {
+              const conDato = vista.filter((v) => v.medio);
+              if (!conDato.length) return <p className="text-sm text-gray-400">Sin datos todavía.</p>;
+              const otros = conDato.filter((v) => v.medio === "OTRO" && v.medio_otro).map((v) => v.medio_otro!);
+              return (
+                <>
+                  {Object.entries(MEDIOS).map(([k, l]) => {
+                    const c = conDato.filter((v) => v.medio === k).length;
+                    const pct = Math.round((c / conDato.length) * 100);
+                    return (
+                      <div key={k} className="flex items-center gap-2 text-xs py-1">
+                        <span className="w-36 text-gray-700">{l}</span>
+                        <div className="flex-1 h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                          <div className="h-full rounded-full bg-marca" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="w-14 text-right text-gray-600 tabular-nums">
+                          {c} · {pct}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <p className="text-xs text-gray-400 mt-1">{conDato.length} respondieron esta pregunta</p>
+                  {otros.length > 0 && (
+                    <p className="text-xs text-gray-600 mt-2">
+                      <b>Otros:</b> {otros.join(" · ")}
+                    </p>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* Áreas */}
