@@ -72,10 +72,24 @@ export default function ResultadosFestival() {
       {/* Encabezado */}
       <div className="bg-white/95 backdrop-blur rounded-3xl shadow-2xl p-4">
         <h1 className="text-lg font-extrabold" style={{ color: ROSA }}>
-          Perfil de los asistentes
+          Perfil de los participantes
         </h1>
         <p className="text-sm text-gray-600 mt-1">
-          Festival Soka por la Paz · quiénes nos acompañaron
+          Festival Soka por la Paz · registros e ingresos
+        </p>
+      </div>
+
+      {/* Cómo leer esta página */}
+      <div className="bg-white/90 backdrop-blur rounded-3xl shadow-xl p-4">
+        <p className="text-sm leading-relaxed text-gray-700">
+          En total tenemos <b>{fmt(total)} personas</b> entre quienes se <b>registraron</b> y quienes
+          <b> ingresaron</b> al teatro (cada una contada una sola vez). De ellas pudimos conocer el
+          <b> sexo</b>, <b>edad</b> y <b>ciudad</b> de <b style={{ color: ROSA }}>{fmt(res.identificados)}</b>{" "}
+          ({pct(res.identificados, total)}%); a las demás las vas a ver como <b>“Sin identificar”</b>.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          Los porcentajes están calculados <b>sobre ese total</b>, por eso en cada sección todo suma {fmt(total)}.
+          Ojo: no son los que asistieron (ingresaron {fmt(res.ingresaron)}), sino todas las personas registradas o que ingresaron.
         </p>
       </div>
 
@@ -84,7 +98,8 @@ export default function ResultadosFestival() {
         <div className="flex items-end justify-between gap-2">
           <div>
             <p className="text-5xl font-extrabold text-gray-900 tabular-nums leading-none">{fmt(total)}</p>
-            <p className="text-sm text-gray-600 mt-1">asistentes en total</p>
+            <p className="text-sm text-gray-600 mt-1">personas en total</p>
+            <p className="text-xs text-gray-400">registradas y/o que ingresaron</p>
           </div>
           <p className="text-right">
             <span className="block text-2xl font-extrabold tabular-nums" style={{ color: ROSA }}>
@@ -97,10 +112,16 @@ export default function ResultadosFestival() {
           <Stat valor={fmt(res.registrados)} label="Registrados" />
           <Stat valor={fmt(res.ingresaron)} label="Ingresaron al teatro" />
         </div>
+        <p className="mt-3 text-xs leading-relaxed text-gray-500">
+          <b>Registrados</b>: se anotaron antes del festival. <b>Ingresaron</b>: entraron al teatro el día del evento.
+        </p>
       </section>
 
       {/* Sexo */}
-      <Tarjeta titulo="Por sexo">
+      <Tarjeta
+        titulo="Por sexo"
+        nota="De cada grupo, el gris “Sin identificar” es el más grande porque de la mayoría no tenemos el dato. Pero entre las personas que sí identificamos, la mayoría son mujeres."
+      >
         <div className="grid grid-cols-3 gap-2">
           <Stat valor={fmt(sexoF)} label="Mujeres" sub={`${pct(sexoF, total)}%`} color={ROSA} />
           <Stat valor={fmt(sexoM)} label="Varones" sub={`${pct(sexoM, total)}%`} color={AZUL} />
@@ -117,31 +138,38 @@ export default function ResultadosFestival() {
 
       {/* Edad */}
       {res.por_edad.length > 0 && (
-        <Tarjeta titulo="Por edad">
+        <Tarjeta
+          titulo="Por edad"
+          nota="Cada barra es un grupo de edad de las personas identificadas. La barra gris “Sin identificar” son las personas de las que no tenemos la edad."
+        >
           <GraficoV data={res.por_edad} unidad="personas" />
         </Tarjeta>
       )}
 
       {/* Ciudades */}
       {res.por_ciudad.length > 0 && (
-        <Tarjeta titulo="De dónde vinieron">
+        <Tarjeta
+          titulo="Ciudades"
+          nota="Ciudad de las personas identificadas. “Otras” junta las ciudades con pocos casos y “Sin identificar” son las que no figuran en el padrón."
+        >
           <GraficoH data={res.por_ciudad} unidad="personas" />
         </Tarjeta>
       )}
 
       <p className="text-center text-xs text-white/90 drop-shadow">
-        "Sin identificar" = asistentes que no figuran en el padrón consultado (menores, no afiliados, extranjeros).
-        El resto del perfil se basa en los {fmt(res.identificados)} identificados.
+        "Sin identificar" = personas que no figuran en el padrón consultado (menores, no afiliados, extranjeros).
+        El resto del perfil se basa en las {fmt(res.identificados)} identificadas.
       </p>
     </main>
   );
 }
 
-function Tarjeta({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function Tarjeta({ titulo, children, nota }: { titulo: string; children: React.ReactNode; nota?: string }) {
   return (
     <section className="bg-white/95 backdrop-blur rounded-3xl shadow-2xl p-4">
       <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-3">{titulo}</h2>
       {children}
+      {nota && <p className="mt-3 text-xs leading-relaxed text-gray-500">{nota}</p>}
     </section>
   );
 }
