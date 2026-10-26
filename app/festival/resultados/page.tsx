@@ -15,6 +15,7 @@ type Res = {
   segmento: string;
   total: number;
   identificados: number;
+  todos: number;
   registrados: number;
   ingresaron: number;
   ambos: number;
@@ -23,8 +24,9 @@ type Res = {
   por_ciudad: KV[];
 };
 
-type SegId = "registrados" | "ingresaron" | "ambos";
+type SegId = "todos" | "registrados" | "ingresaron" | "ambos";
 const SEGS: { id: SegId; label: string; desc: string }[] = [
+  { id: "todos", label: "Registraron y/o ingresaron", desc: "participaron del festival (se anotaron y/o entraron)" },
   { id: "registrados", label: "Se registraron", desc: "personas que se anotaron" },
   { id: "ingresaron", label: "Ingresaron", desc: "personas que entraron al teatro" },
   { id: "ambos", label: "Registraron y participaron", desc: "se anotaron y además ingresaron" },
@@ -39,7 +41,7 @@ const colorDe = (k: string) => (k === "Sin identificar" ? GRIS : k === "Otras" ?
 
 export default function ResultadosFestival() {
   const supabase = useMemo(() => createClient(), []);
-  const [seg, setSeg] = useState<SegId>("registrados");
+  const [seg, setSeg] = useState<SegId>("todos");
   const [res, setRes] = useState<Res | null>(null);
   const [error, setError] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -72,6 +74,7 @@ export default function ResultadosFestival() {
 
   const total = res.total;
   const cuenta: Record<SegId, number> = {
+    todos: res.todos,
     registrados: res.registrados,
     ingresaron: res.ingresaron,
     ambos: res.ambos,
@@ -94,7 +97,7 @@ export default function ResultadosFestival() {
         </p>
 
         {/* Selector de grupo */}
-        <div className="grid grid-cols-3 gap-2 mt-3">
+        <div className="grid grid-cols-2 gap-2 mt-3">
           {SEGS.map((s) => {
             const act = seg === s.id;
             return (

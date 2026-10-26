@@ -13,13 +13,15 @@ begin;
 -- quita la versión anterior sin parámetro (si existía)
 drop function if exists public.fest_resultados();
 
-create or replace function public.fest_resultados(p_seg text default 'registrados')
+create or replace function public.fest_resultados(p_seg text default 'todos')
 returns json
 language sql stable security definer
 set search_path = public
 as $$
   with seg as (
     -- cédulas del grupo elegido
+    select cedula from fest_padron where p_seg = 'todos'
+    union
     select distinct cedula from fest_registro where p_seg = 'registrados'
     union
     select distinct cedula from fest_ingreso  where p_seg = 'ingresaron'
@@ -38,6 +40,7 @@ as $$
     'total',         (select total from tot),
     'identificados', (select count(*) from base where en_padron),
     -- totales globales (para los botones)
+    'todos',         (select count(*) from fest_padron),
     'registrados',   (select count(distinct cedula) from fest_registro),
     'ingresaron',    (select count(distinct cedula) from fest_ingreso),
     'ambos',         (select count(*) from (
