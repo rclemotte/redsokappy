@@ -5,6 +5,7 @@
 -- (correr antes `festival_padron.sql`).
 --
 -- Devuelve SOLO números agregados (sin cédulas, nombres ni direcciones).
+-- Cada desglose incluye "Sin identificar" para que sume el total.
 -- La usa la página pública /festival/resultados.
 -- =============================================================
 begin;
@@ -14,47 +15,57 @@ returns json
 language sql stable security definer
 set search_path = public
 as $$
+  with tot as (select count(*)::int as total from fest_padron)
   select json_build_object(
     'actualizado', now(),
-    'total',         (select count(*) from fest_padron),
+    'total',         (select total from tot),
     'identificados', (select count(*) from fest_padron where en_padron),
     'registrados',   (select count(distinct cedula) from fest_registro),
     'ingresaron',    (select count(distinct cedula) from fest_ingreso),
 
     'por_sexo', (
-      select coalesce(json_agg(json_build_object('k', k, 'n', n) order by n desc), '[]'::json)
+      select coalesce(json_agg(json_build_object('k', k, 'n', n) order by ord), '[]'::json)
       from (
         select case sexo when 'F' then 'Femenino' when 'M' then 'Masculino' end as k,
+               case sexo when 'F' then 0 when 'M' then 1 end as ord,
                count(*) as n
         from fest_padron
         where en_padron and sexo in ('F','M')
-        group by 1
+        group by 1, 2
+        union all
+        select 'Sin identificar', 9,
+               (select total from tot) - (select count(*) from fest_padron where en_padron and sexo in ('F','M'))
       ) s
     ),
 
     'por_edad', (
       select coalesce(json_agg(json_build_object('k', k, 'n', n) order by ord), '[]'::json)
       from (
-        select
-          case when edad < 18 then 'Menor de 18'
-               when edad <= 29 then '18–29'
-               when edad <= 44 then '30–44'
-               when edad <= 59 then '45–59'
-               else '60 o más' end as k,
-          case when edad < 18 then 0
-               when edad <= 29 then 1
-               when edad <= 44 then 2
-               when edad <= 59 then 3
-               else 4 end as ord,
-          count(*) as n
-        from fest_padron
-        where en_padron and edad is not null
-        group by k, ord
+        select k, min(ord) as ord, count(*) as n
+        from (
+          select
+            case when edad < 18 then 'Menor de 18'
+                 when edad <= 29 then '18–29'
+                 when edad <= 44 then '30–44'
+                 when edad <= 59 then '45–59'
+                 else '60 o más' end as k,
+            case when edad < 18 then 0
+                 when edad <= 29 then 1
+                 when edad <= 44 then 2
+                 when edad <= 59 then 3
+                 else 4 end as ord
+          from fest_padron
+          where en_padron and edad is not null
+        ) t
+        group by k
+        union all
+        select 'Sin identificar', 9,
+               (select total from tot) - (select count(*) from fest_padron where en_padron and edad is not null)
       ) e
     ),
 
     'por_ciudad', (
-      select coalesce(json_agg(json_build_object('k', k, 'n', n) order by (k = 'Otras'), n desc), '[]'::json)
+      select coalesce(json_agg(json_build_object('k', k, 'n', n) order by (k = 'Sin identificar'), (k = 'Otras'), n desc), '[]'::json)
       from (
         select case when rn <= 12 then distrito else 'Otras' end as k,
                sum(n) as n
@@ -66,6 +77,9 @@ as $$
           group by distrito
         ) a
         group by (case when rn <= 12 then distrito else 'Otras' end)
+        union all
+        select 'Sin identificar',
+               (select total from tot) - (select count(*) from fest_padron where en_padron and distrito is not null and distrito <> '')
       ) c
     )
   );
