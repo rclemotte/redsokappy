@@ -9,13 +9,14 @@ const base = [
   { href: "/asistencia", label: "Asistencia", icon: "📝" },
 ];
 
-export default function NavInferior({ esEditor = false }: { esEditor?: boolean }) {
+export default function NavInferior({ esEditor = false, esAdmin = false }: { esEditor?: boolean; esAdmin?: boolean }) {
   const path = usePathname();
   const items = esEditor
     ? [
         ...base,
         { href: "/eventos", label: "Eventos", icon: "🎟️" },
         { href: "/usuarios", label: "Usuarios", icon: "🔑" },
+        ...(esAdmin ? [{ href: "/administracion", label: "Admin", icon: "⚙️" }] : []),
       ]
     : base;
 
