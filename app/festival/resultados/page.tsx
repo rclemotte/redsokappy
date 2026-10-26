@@ -6,21 +6,29 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 
-// Página PÚBLICA de resultados del Festival: perfil demográfico de los
-// asistentes (solo números agregados, sin datos personales).
-// Cada desglose incluye "Sin identificar" para que sume el total.
+// Página PÚBLICA de resultados del Festival: perfil demográfico, con selector
+// de grupo (registrados / ingresaron / ambos). Solo números agregados.
 // Link: /festival/resultados
 
 type KV = { k: string; n: number };
 type Res = {
+  segmento: string;
   total: number;
   identificados: number;
   registrados: number;
   ingresaron: number;
+  ambos: number;
   por_sexo: KV[];
   por_edad: KV[];
   por_ciudad: KV[];
 };
+
+type SegId = "registrados" | "ingresaron" | "ambos";
+const SEGS: { id: SegId; label: string; desc: string }[] = [
+  { id: "registrados", label: "Se registraron", desc: "personas que se anotaron" },
+  { id: "ingresaron", label: "Ingresaron", desc: "personas que entraron al teatro" },
+  { id: "ambos", label: "Registraron y participaron", desc: "se anotaron y además ingresaron" },
+];
 
 const ROSA = "#f11579";
 const AZUL = "#0072B2";
@@ -31,12 +39,13 @@ const colorDe = (k: string) => (k === "Sin identificar" ? GRIS : k === "Otras" ?
 
 export default function ResultadosFestival() {
   const supabase = useMemo(() => createClient(), []);
+  const [seg, setSeg] = useState<SegId>("registrados");
   const [res, setRes] = useState<Res | null>(null);
   const [error, setError] = useState(false);
   const [cargando, setCargando] = useState(true);
 
-  const cargar = useCallback(async () => {
-    const { data, error } = await supabase.rpc("fest_resultados");
+  const cargar = useCallback(async (s: SegId) => {
+    const { data, error } = await supabase.rpc("fest_resultados", { p_seg: s });
     if (error || !data) setError(true);
     else {
       setRes(data as Res);
@@ -46,10 +55,10 @@ export default function ResultadosFestival() {
   }, [supabase]);
 
   useEffect(() => {
-    cargar();
-  }, [cargar]);
+    cargar(seg);
+  }, [seg, cargar]);
 
-  if (cargando) return <p className="text-center text-white pt-10 drop-shadow">Cargando…</p>;
+  if (cargando && !res) return <p className="text-center text-white pt-10 drop-shadow">Cargando…</p>;
 
   if (error || !res) {
     return (
@@ -62,6 +71,12 @@ export default function ResultadosFestival() {
   }
 
   const total = res.total;
+  const cuenta: Record<SegId, number> = {
+    registrados: res.registrados,
+    ingresaron: res.ingresaron,
+    ambos: res.ambos,
+  };
+  const segActual = SEGS.find((s) => s.id === seg)!;
   const get = (arr: KV[], k: string) => arr.find((x) => x.k === k)?.n ?? 0;
   const sexoF = get(res.por_sexo, "Femenino");
   const sexoM = get(res.por_sexo, "Masculino");
@@ -75,31 +90,35 @@ export default function ResultadosFestival() {
           Perfil de los participantes
         </h1>
         <p className="text-sm text-gray-600 mt-1">
-          Festival Soka por la Paz · registros e ingresos
+          Festival Soka por la Paz · elegí un grupo para ver su perfil
         </p>
+
+        {/* Selector de grupo */}
+        <div className="grid grid-cols-3 gap-2 mt-3">
+          {SEGS.map((s) => {
+            const act = seg === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setSeg(s.id)}
+                className={`rounded-xl border-2 px-2 py-2 text-center transition ${
+                  act ? "border-[#f11579] bg-[#f11579] text-white" : "border-gray-200 bg-white text-gray-700"
+                }`}
+              >
+                <span className="block text-lg font-extrabold leading-none tabular-nums">{fmt(cuenta[s.id])}</span>
+                <span className={`block text-[11px] leading-tight mt-1 ${act ? "opacity-95" : "text-gray-500"}`}>{s.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Cómo leer esta página */}
-      <div className="bg-white/90 backdrop-blur rounded-3xl shadow-xl p-4">
-        <p className="text-sm leading-relaxed text-gray-700">
-          En total tenemos <b>{fmt(total)} personas</b> entre quienes se <b>registraron</b> y quienes
-          <b> ingresaron</b> al teatro (cada una contada una sola vez). De ellas pudimos conocer el
-          <b> sexo</b>, <b>edad</b> y <b>ciudad</b> de <b style={{ color: ROSA }}>{fmt(res.identificados)}</b>{" "}
-          ({pct(res.identificados, total)}%); a las demás las vas a ver como <b>“Sin identificar”</b>.
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-gray-700">
-          Los porcentajes están calculados <b>sobre ese total</b>, por eso en cada sección todo suma {fmt(total)}.
-          Ojo: no son los que asistieron (ingresaron {fmt(res.ingresaron)}), sino todas las personas registradas o que ingresaron.
-        </p>
-      </div>
-
-      {/* Totales */}
+      {/* Total del grupo elegido */}
       <section className="bg-white/95 backdrop-blur rounded-3xl shadow-2xl p-4">
         <div className="flex items-end justify-between gap-2">
           <div>
             <p className="text-5xl font-extrabold text-gray-900 tabular-nums leading-none">{fmt(total)}</p>
-            <p className="text-sm text-gray-600 mt-1">personas en total</p>
-            <p className="text-xs text-gray-400">registradas y/o que ingresaron</p>
+            <p className="text-sm text-gray-600 mt-1">{segActual.desc}</p>
           </div>
           <p className="text-right">
             <span className="block text-2xl font-extrabold tabular-nums" style={{ color: ROSA }}>
@@ -108,19 +127,16 @@ export default function ResultadosFestival() {
             <span className="block text-xs text-gray-500">con perfil identificado</span>
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2 mt-4">
-          <Stat valor={fmt(res.registrados)} label="Registrados" />
-          <Stat valor={fmt(res.ingresaron)} label="Ingresaron al teatro" />
-        </div>
         <p className="mt-3 text-xs leading-relaxed text-gray-500">
-          <b>Registrados</b>: se anotaron antes del festival. <b>Ingresaron</b>: entraron al teatro el día del evento.
+          Los porcentajes de abajo son <b>sobre estas {fmt(total)} personas</b>. De {fmt(total - res.identificados)} no
+          tenemos datos: aparecen como <b>“Sin identificar”</b>, así cada sección suma el total del grupo.
         </p>
       </section>
 
       {/* Sexo */}
       <Tarjeta
         titulo="Por sexo"
-        nota="De cada grupo, el gris “Sin identificar” es el más grande porque de la mayoría no tenemos el dato. Pero entre las personas que sí identificamos, la mayoría son mujeres."
+        nota="El gris “Sin identificar” suele ser el más grande porque de muchas personas no tenemos el dato. Entre las identificadas, la mayoría son mujeres."
       >
         <div className="grid grid-cols-3 gap-2">
           <Stat valor={fmt(sexoF)} label="Mujeres" sub={`${pct(sexoF, total)}%`} color={ROSA} />
@@ -157,8 +173,7 @@ export default function ResultadosFestival() {
       )}
 
       <p className="text-center text-xs text-white/90 drop-shadow">
-        "Sin identificar" = personas que no figuran en el padrón consultado (menores, no afiliados, extranjeros).
-        El resto del perfil se basa en las {fmt(res.identificados)} identificadas.
+        “Sin identificar” = personas que no figuran en el padrón consultado (menores, no afiliados, extranjeros).
       </p>
     </main>
   );
