@@ -1,3 +1,11 @@
+@import "@fontsource/nunito/latin-400.css";
+@import "@fontsource/nunito/latin-600.css";
+@import "@fontsource/nunito/latin-700.css";
+@import "@fontsource/nunito/latin-800.css";
+@import "@fontsource/baloo-2/latin-600.css";
+@import "@fontsource/baloo-2/latin-700.css";
+@import "@fontsource/baloo-2/latin-800.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,7 +15,67 @@
 }
 
 body {
-  background: #f4f6fb;
-  color: #1a1a1a;
+  @apply bg-crema text-tinta font-sans antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3 {
+  @apply font-display;
+}
+
+@layer components {
+  /* Tarjeta blanca */
+  .card {
+    @apply bg-white rounded-3xl shadow-suave;
+  }
+  /* Título de pantalla */
+  .titulo {
+    @apply font-display text-[1.65rem] leading-tight font-bold text-tinta;
+  }
+  .subtitulo {
+    @apply font-display text-lg font-bold text-tinta;
+  }
+  /* Botones */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold transition active:scale-[0.98] disabled:opacity-60 disabled:active:scale-100;
+  }
+  .btn-sol {
+    @apply btn bg-sol text-white shadow-[0_8px_20px_-8px_rgba(241,21,121,0.7)];
+  }
+  .btn-claro {
+    @apply btn bg-marca-50 text-marca;
+  }
+  .btn-borde {
+    @apply btn border-2 border-linea bg-white text-tinta;
+  }
+  .btn-chico {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-bold transition active:scale-95;
+  }
+  /* Campos */
+  .campo {
+    @apply w-full rounded-2xl border-2 border-linea bg-white px-4 py-3 text-[15px] text-tinta outline-none transition placeholder:text-tinta-tenue focus:border-marca focus:ring-4 focus:ring-marca-100;
+  }
+  .etiqueta {
+    @apply mb-1.5 block text-sm font-bold text-tinta;
+  }
+  /* Chips de filtro */
+  .chip {
+    @apply whitespace-nowrap rounded-full border-2 border-linea bg-white px-3.5 py-1.5 text-sm font-bold text-tinta-suave transition;
+  }
+  .chip-on {
+    @apply border-marca bg-marca text-white;
+  }
+}
+
+/* Barra de scroll horizontal oculta (chips) */
+.sin-scroll {
+  scrollbar-width: none;
+}
+.sin-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Espacio para la barra inferior y el "home" del iPhone */
+.pb-nav {
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
 }

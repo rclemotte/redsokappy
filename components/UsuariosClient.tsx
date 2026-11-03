@@ -101,12 +101,12 @@ export default function UsuariosClient() {
   }
 
   const inputCls =
-    "w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-marca bg-white";
+    "campo";
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">
+        <h1 className="titulo">
           Usuarios <span className="text-sm font-normal text-gray-500">({filtrados.length})</span>
         </h1>
         <button
@@ -122,7 +122,7 @@ export default function UsuariosClient() {
       </div>
 
       {abrirNuevo && (
-        <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+        <div className="card p-4 space-y-3">
           <h3 className="text-sm font-semibold">Nuevo usuario</h3>
           <label className="block">
             <span className="block text-sm font-medium mb-1">Miembro</span>
@@ -170,7 +170,7 @@ export default function UsuariosClient() {
       {cargando ? (
         <p className="text-sm text-gray-500">Cargando...</p>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm divide-y">
+        <div className="card divide-y">
           {filtrados.map((p) => (
             <div key={p.id} className="flex items-center justify-between p-3">
               <div>

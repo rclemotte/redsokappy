@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { usuarioAEmail } from "@/lib/usuarios";
+import AuthMarco from "@/components/AuthMarco";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,57 +45,43 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm p-6">
-        <div className="text-center mb-6">
-          <div className="mx-auto mb-3 h-14 w-14 rounded-2xl bg-marca flex items-center justify-center text-white text-2xl font-bold">
-            R
-          </div>
-          <h1 className="text-xl font-semibold">RedSokappy</h1>
-          <p className="text-sm text-gray-500">Soka Gakkai del Paraguay</p>
+    <AuthMarco titulo="¡Bienvenido/a!" texto="El Tookan de la Soka Gakkai del Paraguay, siempre al día.">
+      <form onSubmit={ingresar} className="space-y-4">
+        <div>
+          <label className="etiqueta">Usuario</label>
+          <input
+            type="text"
+            required
+            autoCapitalize="none"
+            autoCorrect="off"
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
+            className="campo"
+            placeholder="Tu número de cédula"
+          />
+        </div>
+        <div>
+          <label className="etiqueta">Contraseña</label>
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="campo"
+            placeholder="••••••••"
+          />
         </div>
 
-        <form onSubmit={ingresar} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Usuario</label>
-            <input
-              type="text"
-              required
-              autoCapitalize="none"
-              autoCorrect="off"
-              value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-marca"
-              placeholder="Número de cédula"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Contraseña</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-marca"
-              placeholder="••••••••"
-            />
-          </div>
+        {error && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+        <button type="submit" disabled={cargando} className="btn-sol w-full py-4 text-lg">
+          {cargando ? "Ingresando…" : "Ingresar"}
+        </button>
 
-          <button
-            type="submit"
-            disabled={cargando}
-            className="w-full rounded-lg bg-marca text-white py-2.5 font-medium active:bg-marca-dark disabled:opacity-60"
-          >
-            {cargando ? "Ingresando..." : "Ingresar"}
-          </button>
-
-          <p className="text-xs text-gray-400 text-center">
-            La primera vez, tu contraseña es tu número de cédula.
-          </p>
-        </form>
-      </div>
-    </main>
+        <p className="text-center text-sm font-semibold text-tinta-suave">
+          La primera vez, tu contraseña es tu número de cédula.
+        </p>
+      </form>
+    </AuthMarco>
   );
 }

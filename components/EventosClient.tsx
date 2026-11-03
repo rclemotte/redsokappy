@@ -445,7 +445,7 @@ export default function EventosClient() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Festival por la Paz</h1>
+        <h1 className="titulo">Festival por la Paz</h1>
         <span className={`text-xs flex items-center gap-1 ${enVivo ? "text-green-700" : "text-gray-400"}`}>
           <span className={`h-2 w-2 rounded-full ${enVivo ? "bg-green-500 animate-pulse" : "bg-gray-300"}`} />
           {enVivo ? "En vivo" : "Conectando…"}
@@ -613,7 +613,7 @@ export default function EventosClient() {
 
       {/* Detalle del evento seleccionado */}
       {evento && (
-        <div className="bg-white rounded-xl shadow-sm">
+        <div className="card">
           <div className="flex border-b">
             {(["registros", "ingresos"] as const).map((t) => (
               <button

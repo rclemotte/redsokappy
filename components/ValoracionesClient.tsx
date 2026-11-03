@@ -125,7 +125,7 @@ export default function ValoracionesClient() {
       <div className="flex items-center justify-between gap-2">
         <div>
           <Link href="/eventos" className="text-xs text-marca">← Eventos</Link>
-          <h1 className="text-xl font-bold">Valoraciones del Festival</h1>
+          <h1 className="titulo">Valoraciones del Festival</h1>
         </div>
         <span className="text-xs text-gray-400 text-right">
           Se actualiza solo
@@ -258,7 +258,7 @@ export default function ValoracionesClient() {
       </div>
 
       {/* Comentarios */}
-      <div className="bg-white rounded-xl shadow-sm">
+      <div className="card">
         <div className="flex items-center justify-between p-3 border-b">
           <p className="font-semibold text-sm">Respuestas ({comentarios.length})</p>
           <label className="flex items-center gap-2 text-xs text-gray-600">
