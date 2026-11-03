@@ -50,11 +50,7 @@ export default function FichaPersona({ id }: { id: number }) {
       const [per, perfil, ad, sk1, sk2] = await Promise.all([
         supabase.from("vw_personas_tookan").select("*").eq("id_persona", id).single(),
         auth.user ? supabase.from("perfiles").select("id_rol").eq("id", auth.user.id).single() : Promise.resolve({ data: null }),
-        supabase
-          .from("asistencia_d")
-          .select("id_han, asistencia_c(id_asistencia, fecha_asistencia, id_han, tipo_evento(nombre), han(nombre))")
-          .eq("id_persona", id)
-          .limit(200),
+        supabase.rpc("participacion_persona", { p_id: id }),
         supabase.from("shakubuku").select("id_shakubuku_para, membresia, gohonzon, personas!shakubuku_id_shakubuku_para_fkey(nombre)").eq("id_shakubuku_de", id),
         supabase.from("shakubuku").select("id_shakubuku_de, orden, personas!shakubuku_id_shakubuku_de_fkey(nombre)").eq("id_shakubuku_para", id),
       ]);
@@ -62,17 +58,17 @@ export default function FichaPersona({ id }: { id: number }) {
       setPuedeEditar([1, 3, 4].includes(Number((perfil as any).data?.id_rol)));
       const lista: Part[] = ((ad.data as any[]) ?? [])
         .map((r) => ({
-          id_asistencia: r.asistencia_c?.id_asistencia,
-          fecha: r.asistencia_c?.fecha_asistencia,
-          tipo: r.asistencia_c?.tipo_evento?.nombre ?? null,
-          han: r.asistencia_c?.han?.nombre ?? null,
-          visita: per.data?.id_han != null && r.asistencia_c?.id_han != null && r.asistencia_c.id_han !== per.data.id_han,
+          id_asistencia: r.id_asistencia,
+          fecha: r.fecha,
+          tipo: r.tipo ?? null,
+          han: r.han ?? null,
+          visita: per.data?.id_han != null && r.id_han != null && r.id_han !== per.data.id_han,
         }))
         .filter((x) => x.fecha)
         .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
       setParts(lista);
-      setRecomendados(((sk1.data as any[]) ?? []).filter((s) => s.membresia === 1 || s.gohonzon === 1).map((s) => ({ id: s.id_shakubuku_para, nombre: s.personas?.nombre ?? "" })));
-      setRecomendadores(((sk2.data as any[]) ?? []).filter((s) => s.orden).map((s) => ({ id: s.id_shakubuku_de, nombre: s.personas?.nombre ?? "", orden: s.orden })));
+      setRecomendados(((sk1.data as any[]) ?? []).filter((s) => s.membresia === 1 || s.gohonzon === 1).map((s) => ({ id: s.id_shakubuku_para, nombre: s.personas?.nombre ?? "Persona de otro cabildo" })));
+      setRecomendadores(((sk2.data as any[]) ?? []).filter((s) => s.orden).map((s) => ({ id: s.id_shakubuku_de, nombre: s.personas?.nombre ?? "Persona de otro cabildo", orden: s.orden })));
       await cargarCargos();
       setCargando(false);
     })();

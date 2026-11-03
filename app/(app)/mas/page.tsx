@@ -1,19 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import MasClient from "@/components/MasClient";
+import { miPerfil } from "@/lib/perfil";
 
 export const dynamic = "force-dynamic";
 
 export default async function MasPage() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  let idRol = 2;
-  let nombre = "";
-  if (user) {
-    const { data: perfil } = await supabase.from("perfiles").select("id_rol, personas(nombre)").eq("id", user.id).single();
-    idRol = Number(perfil?.id_rol ?? 2);
-    nombre = (perfil as any)?.personas?.nombre ?? user.email?.split("@")[0] ?? "";
-  }
-  return <MasClient nombre={nombre} esEditor={[1, 3].includes(idRol)} esAdmin={idRol === 3} />;
+  const yo = await miPerfil(createClient());
+  return (
+    <MasClient
+      nombre={yo?.nombre ?? ""}
+      ambito={yo?.ambito ?? null}
+      esEditor={!!yo && [1, 3].includes(yo.idRol)}
+      esAdmin={!!yo?.esAdmin}
+    />
+  );
 }

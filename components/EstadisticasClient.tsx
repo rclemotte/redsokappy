@@ -57,7 +57,7 @@ function BarraEstados({ t, alta = false }: { t: Tot; alta?: boolean }) {
   );
 }
 
-export default function EstadisticasClient() {
+export default function EstadisticasClient({ ambito = null }: { ambito?: string | null }) {
   const supabase = createClient();
   const router = useRouter();
   const sp = useSearchParams();
@@ -107,10 +107,10 @@ export default function EstadisticasClient() {
 
   const muestra = actuales[0];
   const titulo =
-    nivel === "SGPY" ? "Toda la SGPy" : nivel === "REGION" ? `Región ${muestra?.region ?? ""}` : nivel === "CABILDO" ? `Cabildo ${muestra?.cabildo ?? ""}` : `Distrito ${muestra?.distrito ?? ""}`;
+    nivel === "SGPY" ? ambito ?? "Toda la SGPy" : nivel === "REGION" ? `Región ${muestra?.region ?? ""}` : nivel === "CABILDO" ? `Cabildo ${muestra?.cabildo ?? ""}` : `Distrito ${muestra?.distrito ?? ""}`;
 
   const migas = [
-    { label: "SGPy", href: "/estadisticas" },
+    { label: ambito ? "Mi ámbito" : "SGPy", href: "/estadisticas" },
     ...(region && muestra ? [{ label: muestra.region, href: `/estadisticas?region=${region}` }] : []),
     ...(cabildo && muestra ? [{ label: muestra.cabildo, href: `/estadisticas?region=${region}&cabildo=${cabildo}` }] : []),
     ...(distrito && muestra ? [{ label: muestra.distrito, href: "" }] : []),

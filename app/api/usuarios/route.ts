@@ -59,6 +59,12 @@ export async function POST(req: Request) {
     );
   }
 
+  // La persona tiene que estar dentro del ámbito de quien crea el usuario
+  const { data: visible } = await supabase.from("personas").select("id_persona").eq("id_persona", idPersona).maybeSingle();
+  if (!visible) {
+    return NextResponse.json({ error: "Esa persona no está dentro de tu ámbito." }, { status: 403 });
+  }
+
   const admin = createAdminClient();
 
   // 3) ¿El miembro ya tiene usuario?
@@ -109,10 +115,13 @@ export async function POST(req: Request) {
     );
   }
 
-  // 6) Crear el perfil (rol Miembro = 2, debe cambiar la clave en el 1er ingreso)
+  // 6) Crear el perfil (rol Miembro = 2, debe cambiar la clave en el 1er ingreso).
+  //    Ámbito inicial: el han de la persona (la Coordinación lo puede cambiar).
+  const { data: per } = await admin.from("personas").select("id_han").eq("id_persona", idPersona).single();
   const { error: ePerfil } = await admin.from("perfiles").insert({
     id: creado.user.id,
     id_persona: idPersona,
+    id_han: per?.id_han ?? null,
     id_rol: 2,
     cedula,
     debe_cambiar_password: true,

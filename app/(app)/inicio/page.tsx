@@ -3,6 +3,7 @@ import { CalendarPlus, UserPlus, TriangleAlert, ChevronRight, CalendarCheck } fr
 import { createClient } from "@/lib/supabase/server";
 import { Decoracion, Kpi } from "@/components/ui";
 import { DIVISIONES, ESTADOS, ORDEN_DIVISIONES, type ResumenHan } from "@/lib/tookan";
+import { miPerfil } from "@/lib/perfil";
 
 export const dynamic = "force-dynamic";
 
@@ -15,20 +16,17 @@ function saludo() {
 
 export default async function InicioPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  const [perfilR, resumenR, mensualR, reunionesR] = await Promise.all([
-    user ? supabase.from("perfiles").select("id_rol, personas(nombre)").eq("id", user.id).single() : Promise.resolve({ data: null }),
+  const [yo, resumenR, mensualR, reunionesR] = await Promise.all([
+    miPerfil(supabase),
     supabase.from("vw_tookan_resumen_han").select("*"),
     supabase.from("vw_dash_asistencia_mensual").select("*"),
     supabase.from("vw_asistencia_por_evento").select("*").order("fecha_asistencia", { ascending: false }).limit(3),
   ]);
 
-  const perfil: any = perfilR.data;
-  const nombre = (perfil?.personas?.nombre ?? "").split(" ")[0] || "";
-  const puedeEditar = [1, 3, 4].includes(Number(perfil?.id_rol));
+  const nombre = (yo?.nombre ?? "").split(" ")[0] || "";
+  const puedeEditar = !!yo?.esEditor;
+  const sinAmbito = !!yo && !yo.esAdmin && !yo.ambito;
   const filas = (resumenR.data ?? []) as ResumenHan[];
 
   const suma = (k: keyof ResumenHan) => filas.reduce((a, r) => a + (Number(r[k]) || 0), 0);
@@ -68,6 +66,9 @@ export default async function InicioPage() {
           <h1 className="mt-0.5 font-display text-[2.2rem] font-extrabold leading-[1.05] drop-shadow-sm">
             {saludo()}{nombre ? `, ${nombre}` : ""}
           </h1>
+          {yo?.ambito && (
+            <span className="mt-2 inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-sm font-extrabold backdrop-blur-sm">{yo.ambito}</span>
+          )}
           <p className="mt-1.5 max-w-md text-[15px] font-semibold text-white/90">
             {tot.personas > 0
               ? `${tot.personas.toLocaleString("es-PY")} personas en ${cabildos} cabildos y ${hanes} hanes.`
@@ -76,8 +77,17 @@ export default async function InicioPage() {
         </div>
       </header>
 
+      {sinAmbito && (
+        <div className="relative -mt-16 rounded-3xl bg-white p-5 shadow-suave lg:-mt-12">
+          <p className="font-display text-lg font-bold">Tu usuario todavía no tiene un ámbito</p>
+          <p className="mt-1 text-sm font-semibold text-tinta-suave">
+            Cuando la Coordinación te asigne tu han, distrito o cabildo, vas a ver acá a las personas y sus números.
+          </p>
+        </div>
+      )}
+
       {/* ---------- Números por estado ---------- */}
-      <section className="-mt-16 grid grid-cols-2 gap-3 lg:-mt-12 lg:grid-cols-4">
+      <section className={`${sinAmbito ? "" : "-mt-16 lg:-mt-12"} grid grid-cols-2 gap-3 lg:grid-cols-4`}>
         <Kpi valor={tot.activos} label="Miembros activos" color="text-estado-activo" punto={ESTADOS.MIEMBRO_ACTIVO.hex} href="/miembros?estado=MIEMBRO_ACTIVO" />
         <Kpi valor={tot.inactivos} label="Miembros inactivos" color="text-tinta-suave" punto={ESTADOS.MIEMBRO_INACTIVO.hex} href="/miembros?estado=MIEMBRO_INACTIVO" />
         <Kpi valor={tot.amigos} label="Amigos Soka" color="text-estado-amigo" punto={ESTADOS.AMIGO_SOKA.hex} href="/miembros?estado=AMIGO_SOKA" />

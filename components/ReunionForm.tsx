@@ -19,6 +19,9 @@ export default function ReunionForm({ id }: { id?: number }) {
   const [tipos, setTipos] = useState<Opt[]>([]);
   const [hanes, setHanes] = useState<Opt[]>([]);
   const [personas, setPersonas] = useState<P[]>([]);
+  // Personas de otros hanes/cabildos (visitas), que no están en la lista propia
+  const [extras, setExtras] = useState<P[]>([]);
+  const [remotos, setRemotos] = useState<P[]>([]);
   const [fecha, setFecha] = useState(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Asuncion" }));
   const [tipo, setTipo] = useState("");
   const [han, setHan] = useState("");
@@ -31,14 +34,21 @@ export default function ReunionForm({ id }: { id?: number }) {
 
   useEffect(() => {
     (async () => {
-      const [t, h, p] = await Promise.all([
+      const [t, h, p, mh] = await Promise.all([
         supabase.from("tipo_evento").select("id_tipo_evento, nombre").order("nombre"),
         supabase.from("vw_estructura").select("id_han, han, cabildo").order("cabildo").order("han"),
         traerTodo<P>((d, hh) => supabase.from("personas").select("id_persona, nombre, division, id_han").eq("activo", true).order("nombre").range(d, hh)).catch(() => []),
+        supabase.rpc("mis_hanes"),
       ]);
+      // Solo los hanes donde el usuario puede registrar
+      const permitidos = Array.isArray(mh.data) ? new Set((mh.data as number[]).map(Number)) : null;
       const ts = (t.data ?? []).map((x: any) => ({ value: String(x.id_tipo_evento), label: x.nombre }));
       setTipos(ts);
-      setHanes((h.data ?? []).map((x: any) => ({ value: String(x.id_han), label: `${x.han} · ${x.cabildo}` })));
+      setHanes(
+        (h.data ?? [])
+          .filter((x: any) => !permitidos || permitidos.has(Number(x.id_han)))
+          .map((x: any) => ({ value: String(x.id_han), label: `${x.han} · ${x.cabildo}` }))
+      );
       setPersonas(p);
       if (!editar) {
         const reunionHan = ts.find((x) => normalizar(x.label).includes("han"));
@@ -57,18 +67,45 @@ export default function ReunionForm({ id }: { id?: number }) {
         for (const r of d.data ?? []) if (r.id_persona != null) m.set(r.id_persona, r.id_asistencia_d);
         setOriginal(m);
         setSel(new Set(m.keys()));
+        // Nombres de visitas que no están en la lista propia
+        const propios = new Set(p.map((x) => x.id_persona));
+        const faltan = Array.from(m.keys()).filter((x) => !propios.has(x));
+        if (faltan.length) {
+          const { data: ex } = await supabase.rpc("personas_nombres", { p_ids: faltan });
+          setExtras(((ex as any[]) ?? []).map((x) => ({ id_persona: x.id_persona, nombre: x.nombre, division: x.division, id_han: x.id_han })));
+        }
       }
       setCargando(false);
     })();
   }, []); // eslint-disable-line
 
   const delHan = useMemo(() => (han ? personas.filter((p) => String(p.id_han) === han) : []), [personas, han]);
-  const visitas = useMemo(() => personas.filter((p) => sel.has(p.id_persona) && String(p.id_han) !== han), [personas, sel, han]);
+  const todas = useMemo(() => {
+    const m = new Map<number, P>();
+    for (const p of [...personas, ...extras]) m.set(p.id_persona, p);
+    return Array.from(m.values());
+  }, [personas, extras]);
+  const visitas = useMemo(() => todas.filter((p) => sel.has(p.id_persona) && String(p.id_han) !== han), [todas, sel, han]);
+
+  // Búsqueda en toda la SGPy (para visitas de otros hanes o cabildos)
+  useEffect(() => {
+    const t = q.trim();
+    if (t.length < 3) { setRemotos([]); return; }
+    const id = setTimeout(async () => {
+      const { data } = await supabase.rpc("buscar_personas", { p_texto: t });
+      setRemotos(((data as any[]) ?? []).map((x) => ({ id_persona: x.id_persona, nombre: x.han ? `${x.nombre} (Han ${x.han})` : x.nombre, division: x.division, id_han: x.id_han })));
+    }, 300);
+    return () => clearTimeout(id);
+  }, [q]); // eslint-disable-line
+
   const candidatos = useMemo(() => {
     const t = normalizar(q.trim());
     if (t.length < 2) return [];
-    return personas.filter((p) => !sel.has(p.id_persona) && String(p.id_han) !== han && normalizar(p.nombre).includes(t)).slice(0, 8);
-  }, [q, personas, sel, han]);
+    const locales = personas.filter((p) => !sel.has(p.id_persona) && String(p.id_han) !== han && normalizar(p.nombre).includes(t));
+    const ya = new Set(locales.map((p) => p.id_persona));
+    const otros = remotos.filter((p) => !ya.has(p.id_persona) && !sel.has(p.id_persona) && String(p.id_han) !== han);
+    return [...locales, ...otros].slice(0, 10);
+  }, [q, personas, remotos, sel, han]);
   const presentesHan = delHan.filter((p) => sel.has(p.id_persona)).length;
 
   function toggle(idp: number) {
@@ -227,7 +264,11 @@ export default function ReunionForm({ id }: { id?: number }) {
             {candidatos.length > 0 && (
               <div className="divide-y divide-linea border-t border-linea bg-crema/60">
                 {candidatos.map((p) => (
-                  <button key={p.id_persona} type="button" onClick={() => { toggle(p.id_persona); setQ(""); }} className="flex w-full items-center gap-3 px-5 py-2.5 text-left active:bg-marca-50">
+                  <button key={p.id_persona} type="button" onClick={() => {
+                      if (!personas.some((x) => x.id_persona === p.id_persona)) setExtras((e) => [...e, p]);
+                      toggle(p.id_persona);
+                      setQ("");
+                    }} className="flex w-full items-center gap-3 px-5 py-2.5 text-left active:bg-marca-50">
                     <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-marca text-white">+</span>
                     <span className="font-bold">{p.nombre}</span>
                   </button>

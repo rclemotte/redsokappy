@@ -142,6 +142,7 @@ export default function MemberForm({ id }: { id?: number }) {
     setErr(null);
     if (!nombre.trim()) return setErr("Escribí el nombre y apellido.");
     if (!division) return setErr("Elegí la división.");
+    if (!editar && !idHan) return setErr("Elegí el han de la persona.");
     const ced = cedula.replace(/\D/g, "");
     if (ced && (ced.length < 4 || ced.length > 10)) return setErr("La cédula tiene que tener entre 4 y 10 números.");
     if (!activo && !motivo) return setErr("Elegí el motivo de la baja.");
@@ -217,7 +218,7 @@ export default function MemberForm({ id }: { id?: number }) {
           </Seccion>
 
           <Seccion titulo="En la organización">
-            <Campo label="Han">
+            <Campo label={editar ? "Han" : "Han *"}>
               <Combobox value={idHan} onChange={setIdHan} options={hanes} placeholder="Buscar han…" />
             </Campo>
             <div>
@@ -296,7 +297,7 @@ export default function MemberForm({ id }: { id?: number }) {
 
 function traducir(m: string) {
   const t = m?.toLowerCase() ?? "";
-  if (t.includes("row-level security")) return "No tenés permiso para guardar cambios. Pedí acceso de editor a la Coordinación.";
+  if (t.includes("row-level security")) return "No tenés permiso para guardar esta persona: tiene que estar en un han de tu ámbito y tu rol tiene que poder editar.";
   if (t.includes("ux_personas_cedula") || (t.includes("duplicate") && t.includes("cedula"))) return "Ya hay otra persona con esa cédula.";
   return m;
 }

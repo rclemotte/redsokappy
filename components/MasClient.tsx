@@ -6,7 +6,7 @@ import { ChevronRight, LogOut, KeyRound } from "lucide-react";
 import { Avatar, Cabecera } from "@/components/ui";
 import { itemsExtra, salir } from "@/components/Shell";
 
-export default function MasClient({ nombre, esEditor, esAdmin }: { nombre: string; esEditor: boolean; esAdmin: boolean }) {
+export default function MasClient({ nombre, ambito, esEditor, esAdmin }: { nombre: string; ambito: string | null; esEditor: boolean; esAdmin: boolean }) {
   const router = useRouter();
   const items = itemsExtra(esEditor, esAdmin);
 
@@ -17,7 +17,7 @@ export default function MasClient({ nombre, esEditor, esAdmin }: { nombre: strin
           <Avatar nombre={nombre || "?"} size={48} />
           <div className="min-w-0">
             <div className="truncate font-display text-lg font-bold">{nombre}</div>
-            <div className="text-sm font-semibold text-white/85">Tu cuenta</div>
+            <div className="text-sm font-semibold text-white/85">{ambito ?? "Sin ámbito asignado"}</div>
           </div>
         </div>
       </Cabecera>

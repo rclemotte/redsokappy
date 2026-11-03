@@ -12,6 +12,7 @@ export default async function UsuariosPage() {
 
   // Solo editores (Responsable/Administrador) pueden gestionar usuarios.
   let esEditor = false;
+  let esAdmin = false;
   if (user) {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -19,8 +20,9 @@ export default async function UsuariosPage() {
       .eq("id", user.id)
       .single();
     esEditor = perfil ? [1, 3].includes(Number(perfil.id_rol)) : false;
+    esAdmin = Number(perfil?.id_rol) === 3;
   }
   if (!esEditor) redirect("/inicio");
 
-  return <UsuariosClient />;
+  return <UsuariosClient esAdmin={esAdmin} />;
 }
