@@ -1,22 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Combobox from "@/components/Combobox";
+import { Cabecera } from "@/components/ui";
+import { DIVISIONES, MOTIVOS_BAJA, ORDEN_DIVISIONES, traerTodo } from "@/lib/tookan";
 
 type Opt = { value: string; label: string };
 
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <section className="card space-y-4 p-5">
+      <h2 className="subtitulo">{titulo}</h2>
+      {children}
+    </section>
+  );
+}
+
+function Campo({ label, ayuda, children }: { label: string; ayuda?: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-sm font-medium mb-1">{label}</span>
+      <span className="etiqueta">{label}</span>
       {children}
+      {ayuda && <span className="mt-1 block text-xs font-semibold text-tinta-tenue">{ayuda}</span>}
     </label>
   );
 }
 
-const inputCls = "w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-marca bg-white";
+// Sí / No grande, fácil de tocar
+function SiNo({ label, valor, onChange, ayuda }: { label: string; valor: boolean; onChange: (v: boolean) => void; ayuda?: string }) {
+  return (
+    <div>
+      <span className="etiqueta">{label}</span>
+      <div className="grid grid-cols-2 gap-2">
+        {[true, false].map((v) => (
+          <button
+            key={String(v)}
+            type="button"
+            onClick={() => onChange(v)}
+            className={`rounded-2xl border-2 py-3 font-extrabold transition ${
+              valor === v ? "border-marca bg-marca text-white" : "border-linea bg-white text-tinta-suave"
+            }`}
+          >
+            {v ? "Sí" : "No"}
+          </button>
+        ))}
+      </div>
+      {ayuda && <span className="mt-1 block text-xs font-semibold text-tinta-tenue">{ayuda}</span>}
+    </div>
+  );
+}
 
 export default function MemberForm({ id }: { id?: number }) {
   const supabase = createClient();
@@ -25,72 +60,108 @@ export default function MemberForm({ id }: { id?: number }) {
 
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  // catálogos
-  const [divisiones, setDivisiones] = useState<Opt[]>([]);
-  const [estados, setEstados] = useState<Opt[]>([]);
-  const [hans, setHans] = useState<Opt[]>([]);
+  const [hanes, setHanes] = useState<Opt[]>([]);
   const [personas, setPersonas] = useState<Opt[]>([]);
 
-  // campos persona
   const [nombre, setNombre] = useState("");
+  const [cedula, setCedula] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [correo, setCorreo] = useState("");
+  const [nacimiento, setNacimiento] = useState("");
   const [division, setDivision] = useState("");
-  const [idEstado, setIdEstado] = useState("");
   const [idHan, setIdHan] = useState("");
-  const [titular, setTitular] = useState(false);
-  const [fechaIngreso, setFechaIngreso] = useState("");
-  const [invitadoPor, setInvitadoPor] = useState("");
+  const [membresia, setMembresia] = useState(false);
+  const [gohonzon, setGohonzon] = useState(false);
+  const [rec1, setRec1] = useState("");
+  const [rec2, setRec2] = useState("");
+  const [activo, setActivo] = useState(true);
+  const [motivo, setMotivo] = useState("");
+  const [obs, setObs] = useState("");
 
   useEffect(() => {
     (async () => {
-      const [d, e, h, p] = await Promise.all([
-        supabase.from("divisiones").select("codigo, descripcion").order("codigo"),
-        supabase.from("estados").select("id_estado, descripcion").order("descripcion"),
-        supabase.from("han").select("id_han, nombre").order("nombre"),
-        supabase.from("personas").select("id_persona, nombre").order("nombre"),
+      const [h, p] = await Promise.all([
+        supabase.from("vw_estructura").select("id_han, han, distrito, cabildo").order("cabildo").order("han"),
+        traerTodo<any>((d, hh) => supabase.from("personas").select("id_persona, nombre").eq("activo", true).order("nombre").range(d, hh)).catch(() => []),
       ]);
-      setDivisiones((d.data ?? []).map((x: any) => ({ value: x.codigo, label: `${x.codigo} — ${x.descripcion}` })));
-      setEstados((e.data ?? []).map((x: any) => ({ value: String(x.id_estado), label: x.descripcion })));
-      setHans((h.data ?? []).map((x: any) => ({ value: String(x.id_han), label: x.nombre })));
-      setPersonas((p.data ?? []).map((x: any) => ({ value: String(x.id_persona), label: x.nombre })));
+      setHanes((h.data ?? []).map((x: any) => ({ value: String(x.id_han), label: `${x.han} · ${x.distrito} · ${x.cabildo}` })));
+      setPersonas(p.map((x: any) => ({ value: String(x.id_persona), label: x.nombre })));
 
       if (editar) {
         const { data: per } = await supabase.from("personas").select("*").eq("id_persona", id).single();
         if (per) {
-          setNombre(per.nombre ?? "");
+          setNombre([per.nombre, per.apellido].filter(Boolean).join(" "));
+          setCedula(per.cedula ?? "");
           setTelefono(per.telefono ?? "");
-          setCorreo(per.correo ?? "");
+          setNacimiento(per.fecha_nacimiento ? String(per.fecha_nacimiento).slice(0, 10) : "");
           setDivision(per.division ?? "");
-          setIdEstado(per.id_estado != null ? String(per.id_estado) : "");
           setIdHan(per.id_han != null ? String(per.id_han) : "");
-          setTitular(per.titular_gohonzo === 1);
-          setFechaIngreso(per.fecha_ingreso ? String(per.fecha_ingreso).slice(0, 10) : "");
+          setMembresia(!!per.membresia);
+          setGohonzon(per.titular_gohonzo === 1);
+          setActivo(per.activo !== false);
+          setMotivo(per.motivo_baja ?? "");
+          setObs(per.observacion ?? "");
         }
-        const { data: sk } = await supabase
-          .from("shakubuku").select("id_shakubuku_de").eq("id_shakubuku_para", id).limit(1);
-        if (sk && sk.length) setInvitadoPor(String(sk[0].id_shakubuku_de));
+        const { data: sk } = await supabase.from("shakubuku").select("id_shakubuku_de, orden").eq("id_shakubuku_para", id);
+        for (const s of sk ?? []) {
+          if (s.orden === 1) setRec1(String(s.id_shakubuku_de));
+          if (s.orden === 2) setRec2(String(s.id_shakubuku_de));
+        }
       }
       setCargando(false);
     })();
   }, []); // eslint-disable-line
 
+  const otras = useMemo(() => personas.filter((o) => o.value !== String(id)), [personas, id]);
+
+  async function guardarRecomendador(personaId: number, orden: 1 | 2, valor: string) {
+    const { data: ex } = await supabase.from("shakubuku").select("id_shakubuku, id_shakubuku_de").eq("id_shakubuku_para", personaId).eq("orden", orden);
+    const actual = ex?.[0];
+    if (!valor) {
+      if (actual) await supabase.from("shakubuku").update({ orden: null }).eq("id_shakubuku", actual.id_shakubuku);
+      return;
+    }
+    const de = Number(valor);
+    if (actual?.id_shakubuku_de === de) return;
+    if (actual) await supabase.from("shakubuku").update({ orden: null }).eq("id_shakubuku", actual.id_shakubuku);
+    // ¿Ya existe el vínculo (por ejemplo, cargado al registrar asistencia)?
+    const { data: mismo } = await supabase.from("shakubuku").select("id_shakubuku").eq("id_shakubuku_para", personaId).eq("id_shakubuku_de", de);
+    if (mismo?.length) {
+      await supabase.from("shakubuku").update({ orden }).eq("id_shakubuku", mismo[0].id_shakubuku);
+    } else {
+      await supabase.from("shakubuku").insert({
+        id_shakubuku_de: de, id_shakubuku_para: personaId, orden,
+        membresia: membresia ? 1 : 0, gohonzon: gohonzon ? 1 : 0,
+      });
+    }
+  }
+
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
-    setErr(null); setMsg(null); setGuardando(true);
+    setErr(null);
+    if (!nombre.trim()) return setErr("Escribí el nombre y apellido.");
+    if (!division) return setErr("Elegí la división.");
+    const ced = cedula.replace(/\D/g, "");
+    if (ced && (ced.length < 4 || ced.length > 10)) return setErr("La cédula tiene que tener entre 4 y 10 números.");
+    if (!activo && !motivo) return setErr("Elegí el motivo de la baja.");
+    if (rec1 && rec1 === rec2) return setErr("El Recomendador 1 y el 2 no pueden ser la misma persona.");
+    setGuardando(true);
+
     const payload: any = {
-      nombre: nombre.trim(),
+      nombre: nombre.trim().replace(/\s+/g, " "),
+      cedula: ced || null,
       telefono: telefono.trim() || null,
-      correo: correo.trim() || null,
-      division: division || null,
-      id_estado: idEstado ? Number(idEstado) : null,
+      fecha_nacimiento: nacimiento || null,
+      division,
       id_han: idHan ? Number(idHan) : null,
-      titular_gohonzo: titular ? 1 : 0,
-      fecha_ingreso: fechaIngreso || null,
+      membresia: membresia || gohonzon,
+      titular_gohonzo: gohonzon ? 1 : 0,
+      activo,
+      motivo_baja: activo ? null : motivo,
+      observacion: obs.trim() || null,
     };
+    if (editar) payload.apellido = null; // el nombre completo queda en un solo campo
 
     let personaId = id;
     if (editar) {
@@ -101,220 +172,131 @@ export default function MemberForm({ id }: { id?: number }) {
       if (error) { setErr(traducir(error.message)); setGuardando(false); return; }
       personaId = data.id_persona;
     }
-
-    // "invitado por" -> shakubuku (id_shakubuku_de = invitador, id_shakubuku_para = esta persona)
-    if (invitadoPor && personaId) {
-      const de = Number(invitadoPor);
-      const { data: ex } = await supabase
-        .from("shakubuku").select("id_shakubuku").eq("id_shakubuku_para", personaId).limit(1);
-      if (ex && ex.length) {
-        await supabase.from("shakubuku").update({ id_shakubuku_de: de }).eq("id_shakubuku", ex[0].id_shakubuku);
-      } else {
-        await supabase.from("shakubuku").insert({ id_shakubuku_de: de, id_shakubuku_para: personaId, gohonzon: 0, membresia: 0 });
-      }
+    if (personaId) {
+      await guardarRecomendador(personaId, 1, rec1);
+      await guardarRecomendador(personaId, 2, rec2);
     }
-
-    setGuardando(false);
-    if (editar) {
-      setMsg("Cambios guardados ✓");
-    } else {
-      router.push(`/miembros/${personaId}`);
-    }
+    router.push(`/miembros/${personaId}`);
+    router.refresh();
   }
 
-  if (cargando) return <p className="text-sm text-gray-500">Cargando...</p>;
+  if (cargando) {
+    return (
+      <div>
+        <Cabecera titulo={editar ? "Editar ficha" : "Nueva persona"} volver />
+        <div className="card h-64 animate-pulse" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <button onClick={() => router.back()} className="text-gray-500 text-sm">‹ Volver</button>
-        <h1 className="text-lg font-semibold">{editar ? "Editar miembro" : "Nuevo miembro"}</h1>
-      </div>
+    <div>
+      <Cabecera
+        titulo={editar ? "Editar ficha" : "Nueva persona"}
+        subtitulo={editar ? nombre : "Miembro o amigo que se suma"}
+        volver
+      />
 
-      <form onSubmit={guardar} className="bg-white rounded-xl shadow-sm p-4 space-y-3">
-        <Campo label="Nombre *">
-          <input className={inputCls} required value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        </Campo>
-        <div className="grid grid-cols-2 gap-3">
-          <Campo label="Teléfono">
-            <input className={inputCls} value={telefono} onChange={(e) => setTelefono(e.target.value)} />
-          </Campo>
-          <Campo label="Correo">
-            <input className={inputCls} value={correo} onChange={(e) => setCorreo(e.target.value)} />
-          </Campo>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Campo label="División">
-            <Combobox value={division} onChange={setDivision} options={divisiones} placeholder="División..." />
-          </Campo>
-          <Campo label="Estado">
-            <Combobox value={idEstado} onChange={setIdEstado} options={estados} placeholder="Estado..." />
-          </Campo>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Campo label="Han">
-            <Combobox value={idHan} onChange={setIdHan} options={hans} placeholder="Han..." />
-          </Campo>
-          <Campo label="Fecha de ingreso">
-            <input type="date" className={inputCls} value={fechaIngreso} onChange={(e) => setFechaIngreso(e.target.value)} />
-          </Campo>
-        </div>
-        <Campo label="Le hizo shakubuku (lo invitó)">
-          <Combobox
-            value={invitadoPor}
-            onChange={setInvitadoPor}
-            options={personas.filter((o) => o.value !== String(id))}
-            placeholder="Buscar persona..."
-          />
-        </Campo>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={titular} onChange={(e) => setTitular(e.target.checked)} />
-          Titular de Gohonzon
-        </label>
+      <form onSubmit={guardar} className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0">
+        <div className="space-y-4">
+          <Seccion titulo="Datos personales">
+            <Campo label="Nombre y apellido *">
+              <input className="campo" value={nombre} onChange={(e) => setNombre(e.target.value)} autoComplete="off" />
+            </Campo>
+            <div className="grid grid-cols-2 gap-3">
+              <Campo label="Cédula">
+                <input className="campo" inputMode="numeric" value={cedula} onChange={(e) => setCedula(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="Solo números" />
+              </Campo>
+              <Campo label="Teléfono">
+                <input className="campo" inputMode="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="0981 123456" />
+              </Campo>
+            </div>
+            <Campo label="Fecha de nacimiento">
+              <input type="date" className="campo" value={nacimiento} onChange={(e) => setNacimiento(e.target.value)} />
+            </Campo>
+          </Seccion>
 
-        {err && <p className="text-sm text-red-600">{err}</p>}
-        {msg && <p className="text-sm text-green-600">{msg}</p>}
+          <Seccion titulo="En la organización">
+            <Campo label="Han">
+              <Combobox value={idHan} onChange={setIdHan} options={hanes} placeholder="Buscar han…" />
+            </Campo>
+            <div>
+              <span className="etiqueta">División *</span>
+              <div className="grid grid-cols-5 gap-2">
+                {ORDEN_DIVISIONES.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    title={DIVISIONES[d].label}
+                    onClick={() => setDivision(d)}
+                    className={`rounded-2xl border-2 py-3 text-sm font-extrabold transition ${
+                      division === d ? "border-transparent text-white" : "border-linea bg-white text-tinta-suave"
+                    }`}
+                    style={division === d ? { background: DIVISIONES[d].hex } : undefined}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+              {division && <span className="mt-1 block text-xs font-semibold text-tinta-tenue">{DIVISIONES[division]?.label}</span>}
+            </div>
+          </Seccion>
+        </div>
 
-        <button disabled={guardando} className="w-full rounded-lg bg-marca text-white py-2.5 font-medium disabled:opacity-60">
-          {guardando ? "Guardando..." : editar ? "Guardar cambios" : "Crear miembro"}
-        </button>
+        <div className="space-y-4">
+          <Seccion titulo="Práctica">
+            <div className="grid grid-cols-2 gap-3">
+              <SiNo label="Membresía" valor={membresia || gohonzon} onChange={setMembresia} />
+              <SiNo label="Gohonzon" valor={gohonzon} onChange={(v) => { setGohonzon(v); if (v) setMembresia(true); }} />
+            </div>
+            <p className="rounded-2xl bg-marca-50 px-4 py-3 text-sm font-semibold text-tinta-suave">
+              El estado (nuevo amigo, Amigo Soka, miembro activo o inactivo) lo calcula la app según la membresía y la participación.
+            </p>
+            <Campo label="Recomendador 1" ayuda="Quién le hizo shakubuku">
+              <Combobox value={rec1} onChange={setRec1} options={otras} placeholder="Buscar persona…" />
+            </Campo>
+            <Campo label="Recomendador 2">
+              <Combobox value={rec2} onChange={setRec2} options={otras} placeholder="Buscar persona…" />
+            </Campo>
+          </Seccion>
+
+          <Seccion titulo="Situación">
+            <SiNo label="¿Sigue en el Tookan?" valor={activo} onChange={setActivo} ayuda={activo ? undefined : "Las bajas no aparecen en las listas ni en las estadísticas."} />
+            {!activo && (
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(MOTIVOS_BAJA).map(([k, v]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setMotivo(k)}
+                    className={`rounded-2xl border-2 px-3 py-2.5 text-left text-sm font-bold transition ${
+                      motivo === k ? "border-marca bg-marca-50 text-marca" : "border-linea bg-white text-tinta-suave"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Campo label="Observación">
+              <textarea className="campo min-h-[96px]" value={obs} onChange={(e) => setObs(e.target.value)} maxLength={500} />
+            </Campo>
+          </Seccion>
+
+          {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{err}</p>}
+          <button disabled={guardando} className="btn-sol w-full py-4 text-lg">
+            <Check size={22} strokeWidth={3} />
+            {guardando ? "Guardando…" : editar ? "Guardar cambios" : "Crear persona"}
+          </button>
+        </div>
       </form>
-
-      {editar && personaId(id) && <Relacionadas idPersona={id!} />}
     </div>
   );
 }
-
-function personaId(id?: number) { return typeof id === "number"; }
 
 function traducir(m: string) {
-  if (m?.toLowerCase().includes("row-level security")) {
-    return "No tenés permiso para guardar. Ejecutá supabase/dashboard.sql (asigna tu perfil de administrador) y reintentá.";
-  }
+  const t = m?.toLowerCase() ?? "";
+  if (t.includes("row-level security")) return "No tenés permiso para guardar cambios. Pedí acceso de editor a la Coordinación.";
+  if (t.includes("ux_personas_cedula") || (t.includes("duplicate") && t.includes("cedula"))) return "Ya hay otra persona con esa cédula.";
   return m;
-}
-
-// ---------- Tablas relacionadas (grupos, suscripciones, exámenes, daimoku) ----------
-function Relacionadas({ idPersona }: { idPersona: number }) {
-  const supabase = createClient();
-  const [grupos, setGrupos] = useState<any[]>([]);
-  const [subs, setSubs] = useState<any[]>([]);
-  const [examenes, setExamenes] = useState<any[]>([]);
-  const [daimoku, setDaimoku] = useState<number>(0);
-
-  const [catGrupos, setCatGrupos] = useState<Opt[]>([]);
-  const [catCargos, setCatCargos] = useState<Opt[]>([]);
-  const [catTipoSus, setCatTipoSus] = useState<Opt[]>([]);
-  const [catExam, setCatExam] = useState<Opt[]>([]);
-
-  const [ngGrupo, setNgGrupo] = useState("");
-  const [ngCargo, setNgCargo] = useState("");
-  const [nSus, setNSus] = useState("");
-  const [nExam, setNExam] = useState("");
-
-  async function recargar() {
-    const [g, s, ep, dk] = await Promise.all([
-      supabase.from("grupos_personas").select("id_grupo_persona, id_cargo, grupos(nombre_grupo), cargo(cargo)").eq("id_persona", idPersona),
-      supabase.from("suscripciones").select("id_suscripcion, tipo_suscripciones(suscripcion)").eq("id_persona", idPersona),
-      supabase.from("examen_personas").select("id_examen_personas, examenes(nivel)").eq("id_persona", idPersona),
-      supabase.from("daimoku").select("*", { count: "exact", head: true }).eq("id_persona", idPersona),
-    ]);
-    setGrupos((g.data as any) ?? []);
-    setSubs((s.data as any) ?? []);
-    setExamenes((ep.data as any) ?? []);
-    setDaimoku(dk.count ?? 0);
-  }
-
-  useEffect(() => {
-    (async () => {
-      const [g, c, t, e] = await Promise.all([
-        supabase.from("grupos").select("id_grupo, nombre_grupo").order("nombre_grupo"),
-        supabase.from("cargo").select("id_cargo, cargo").order("cargo"),
-        supabase.from("tipo_suscripciones").select("id_tipo_suscripcion, suscripcion").order("suscripcion"),
-        supabase.from("examenes").select("id_examen, nivel").order("nivel"),
-      ]);
-      setCatGrupos((g.data ?? []).map((x: any) => ({ value: String(x.id_grupo), label: x.nombre_grupo })));
-      setCatCargos((c.data ?? []).map((x: any) => ({ value: String(x.id_cargo), label: x.cargo })));
-      setCatTipoSus((t.data ?? []).map((x: any) => ({ value: String(x.id_tipo_suscripcion), label: x.suscripcion })));
-      setCatExam((e.data ?? []).map((x: any) => ({ value: String(x.id_examen), label: x.nivel })));
-      await recargar();
-    })();
-  }, []); // eslint-disable-line
-
-  const secc = "bg-white rounded-xl shadow-sm p-4 space-y-2";
-  const chip = "flex items-center justify-between text-sm border-b last:border-0 py-1.5";
-  const addBtn = "rounded-lg bg-marca text-white text-sm px-3";
-
-  return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-semibold text-gray-600 pt-2">Datos relacionados</h2>
-
-      <div className={secc}>
-        <h3 className="text-sm font-semibold">Grupos</h3>
-        {grupos.map((x) => (
-          <div key={x.id_grupo_persona} className={chip}>
-            <span>{x.grupos?.nombre_grupo} <span className="text-gray-400">· {x.cargo?.cargo}</span></span>
-            <button className="text-red-500 text-xs" onClick={async () => { await supabase.from("grupos_personas").delete().eq("id_grupo_persona", x.id_grupo_persona); recargar(); }}>Quitar</button>
-          </div>
-        ))}
-        <div className="space-y-2 pt-1">
-          <Combobox value={ngGrupo} onChange={setNgGrupo} options={catGrupos} placeholder="Grupo..." />
-          <div className="flex gap-2">
-            <Combobox className="flex-1" value={ngCargo} onChange={setNgCargo} options={catCargos} placeholder="Cargo..." />
-            <button className={addBtn} onClick={async () => {
-              if (!ngGrupo || !ngCargo) return;
-              await supabase.from("grupos_personas").insert({ id_persona: idPersona, id_grupo: Number(ngGrupo), id_cargo: Number(ngCargo) });
-              setNgGrupo(""); setNgCargo(""); recargar();
-            }}>+</button>
-          </div>
-        </div>
-      </div>
-
-      <div className={secc}>
-        <h3 className="text-sm font-semibold">Suscripciones</h3>
-        {subs.map((x) => (
-          <div key={x.id_suscripcion} className={chip}>
-            <span>{x.tipo_suscripciones?.suscripcion}</span>
-            <button className="text-red-500 text-xs" onClick={async () => { await supabase.from("suscripciones").delete().eq("id_suscripcion", x.id_suscripcion); recargar(); }}>Quitar</button>
-          </div>
-        ))}
-        <div className="flex gap-2 pt-1">
-          <Combobox className="flex-1" value={nSus} onChange={setNSus} options={catTipoSus} placeholder="Tipo..." />
-          <button className={addBtn} onClick={async () => {
-            if (!nSus) return;
-            await supabase.from("suscripciones").insert({ id_persona: idPersona, id_tipo_suscripcion: Number(nSus) });
-            setNSus(""); recargar();
-          }}>+</button>
-        </div>
-      </div>
-
-      <div className={secc}>
-        <h3 className="text-sm font-semibold">Exámenes</h3>
-        {examenes.map((x) => (
-          <div key={x.id_examen_personas} className={chip}>
-            <span>{x.examenes?.nivel}</span>
-            <button className="text-red-500 text-xs" onClick={async () => { await supabase.from("examen_personas").delete().eq("id_examen_personas", x.id_examen_personas); recargar(); }}>Quitar</button>
-          </div>
-        ))}
-        <div className="flex gap-2 pt-1">
-          <Combobox className="flex-1" value={nExam} onChange={setNExam} options={catExam} placeholder="Nivel..." />
-          <button className={addBtn} onClick={async () => {
-            if (!nExam) return;
-            await supabase.from("examen_personas").insert({ id_persona: idPersona, id_examen: Number(nExam) });
-            setNExam(""); recargar();
-          }}>+</button>
-        </div>
-      </div>
-
-      <div className={secc}>
-        <h3 className="text-sm font-semibold">Daimoku</h3>
-        <div className="flex items-center justify-between text-sm">
-          <span>Registros: <b>{daimoku}</b></span>
-          <button className="rounded-lg bg-marca text-white text-sm px-3 py-1.5" onClick={async () => {
-            await supabase.from("daimoku").insert({ id_persona: idPersona }); recargar();
-          }}>+ Registrar</button>
-        </div>
-      </div>
-    </div>
-  );
 }

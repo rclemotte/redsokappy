@@ -1,7 +1,7 @@
-import MemberForm from "@/components/MemberForm";
+import FichaPersona from "@/components/FichaPersona";
 
 export const dynamic = "force-dynamic";
 
-export default function EditarMiembroPage({ params }: { params: { id: string } }) {
-  return <MemberForm id={Number(params.id)} />;
+export default function FichaPage({ params }: { params: { id: string } }) {
+  return <FichaPersona id={Number(params.id)} />;
 }

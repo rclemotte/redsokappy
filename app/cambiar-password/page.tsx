@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AuthMarco from "@/components/AuthMarco";
 
 export default function CambiarPasswordPage() {
   const router = useRouter();
@@ -40,50 +41,23 @@ export default function CambiarPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm p-6">
-        <div className="text-center mb-5">
-          <h1 className="text-xl font-semibold">Cambiá tu contraseña</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Es tu primer ingreso. Elegí una contraseña nueva para tu cuenta.
-          </p>
+    <AuthMarco titulo="Tu contraseña" texto="Elegí una contraseña nueva para tu cuenta. Solo vos la vas a saber.">
+      <form onSubmit={guardar} className="space-y-4">
+        <div>
+          <label className="etiqueta">Nueva contraseña</label>
+          <input type="password" required value={p1} onChange={(e) => setP1(e.target.value)} className="campo" placeholder="Mínimo 6 caracteres" />
+        </div>
+        <div>
+          <label className="etiqueta">Repetir contraseña</label>
+          <input type="password" required value={p2} onChange={(e) => setP2(e.target.value)} className="campo" placeholder="••••••••" />
         </div>
 
-        <form onSubmit={guardar} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Nueva contraseña</label>
-            <input
-              type="password"
-              required
-              value={p1}
-              onChange={(e) => setP1(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-marca"
-              placeholder="Mínimo 6 caracteres"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Repetir contraseña</label>
-            <input
-              type="password"
-              required
-              value={p2}
-              onChange={(e) => setP2(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-marca"
-              placeholder="••••••••"
-            />
-          </div>
+        {error && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={guardando}
-            className="w-full rounded-lg bg-marca text-white py-2.5 font-medium disabled:opacity-60"
-          >
-            {guardando ? "Guardando..." : "Guardar y continuar"}
-          </button>
-        </form>
-      </div>
-    </main>
+        <button type="submit" disabled={guardando} className="btn-sol w-full py-4 text-lg">
+          {guardando ? "Guardando…" : "Guardar y continuar"}
+        </button>
+      </form>
+    </AuthMarco>
   );
 }

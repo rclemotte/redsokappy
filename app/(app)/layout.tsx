@@ -1,15 +1,17 @@
 import { redirect } from "next/navigation";
-import LogoutButton from "@/components/LogoutButton";
-import NavInferior from "@/components/NavInferior";
+import Shell from "@/components/Shell";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const ROLES: Record<number, string> = {
+  1: "Responsable",
+  2: "Miembro",
+  3: "Administrador",
+  4: "Encargado de estadística",
+};
+
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const {
     data: { user },
@@ -17,10 +19,12 @@ export default async function AppLayout({
 
   let esEditor = false;
   let esAdmin = false;
+  let nombre = "Hola";
+  let rol = "";
   if (user) {
     const { data: perfil } = await supabase
       .from("perfiles")
-      .select("id_rol, debe_cambiar_password")
+      .select("id_rol, debe_cambiar_password, personas(nombre)")
       .eq("id", user.id)
       .single();
 
@@ -28,18 +32,16 @@ export default async function AppLayout({
     if (perfil?.debe_cambiar_password) {
       redirect("/cambiar-password");
     }
-    esEditor = perfil ? [1, 3].includes(Number(perfil.id_rol)) : false;
-    esAdmin = Number(perfil?.id_rol) === 3;
+    const idRol = Number(perfil?.id_rol);
+    esEditor = [1, 3].includes(idRol);
+    esAdmin = idRol === 3;
+    rol = ROLES[idRol] ?? "Miembro";
+    nombre = (perfil as any)?.personas?.nombre ?? user.email?.split("@")[0] ?? "Hola";
   }
 
   return (
-    <div className="min-h-screen pb-16">
-      <header className="sticky top-0 z-10 bg-marca text-white px-4 py-3 flex items-center justify-between">
-        <span className="font-semibold">RedSokappy</span>
-        <LogoutButton />
-      </header>
-      <main className="p-4 max-w-2xl mx-auto">{children}</main>
-      <NavInferior esEditor={esEditor} esAdmin={esAdmin} />
-    </div>
+    <Shell nombre={nombre} rol={rol} esEditor={esEditor} esAdmin={esAdmin}>
+      {children}
+    </Shell>
   );
 }

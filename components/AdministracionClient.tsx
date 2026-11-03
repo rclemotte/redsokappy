@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Cabecera } from "@/components/ui";
 
 type Parametro = {
   clave: string;
@@ -21,7 +22,7 @@ const PARAM: Record<string, { titulo: string; unidad?: string; grupo: string }> 
   INICIO_PARTICIPACION: { titulo: "Se registra la participación desde", grupo: "Miembro activo / inactivo" },
 };
 
-const inputCls = "rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-marca bg-white";
+const inputCls = "campo";
 
 export default function AdministracionClient() {
   const supabase = createClient();
@@ -119,7 +120,7 @@ export default function AdministracionClient() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-lg font-semibold">Administración</h1>
+      <Cabecera titulo="Administración" subtitulo="Parámetros de los estados y lista de cargos" />
 
       {msg && <p className="text-sm text-green-700 bg-green-50 rounded-lg p-3">{msg}</p>}
       {err && <p className="text-sm text-red-700 bg-red-50 rounded-lg p-3">{err}</p>}
@@ -137,7 +138,7 @@ export default function AdministracionClient() {
           </p>
         ) : (
           grupos.map((g) => (
-            <div key={g} className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+            <div key={g} className="card p-4 space-y-3">
               <h3 className="text-sm font-semibold text-marca">{g}</h3>
               {params
                 .filter((p) => (PARAM[p.clave]?.grupo ?? "Otros") === g)
@@ -189,7 +190,7 @@ export default function AdministracionClient() {
           Cada cargo se arma con función · nivel · división (ej. <i>Vice responsable · Han · DF</i>). Acá se mantiene la
           lista de funciones. Un cargo que ya no se usa se desactiva: no se borra, para no perder el historial.
         </p>
-        <div className="bg-white rounded-xl shadow-sm divide-y">
+        <div className="card divide-y">
           {cargos.map((c, i) => (
             <div key={c.id_cargo} className="flex items-center gap-2 p-3">
               <div className="flex flex-col">
