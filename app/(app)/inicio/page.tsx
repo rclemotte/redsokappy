@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import Link from "next/link";
+import AlientoDiario, { AlientoCargando } from "@/components/AlientoDiario";
 import { CalendarPlus, UserPlus, TriangleAlert, ChevronRight, CalendarCheck, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Decoracion, Kpi } from "@/components/ui";
@@ -92,6 +94,12 @@ export default async function InicioPage() {
         </div>
       )}
 
+      {sinAmbito && (
+        <Suspense fallback={<AlientoCargando />}>
+          <AlientoDiario />
+        </Suspense>
+      )}
+
       {!sinAmbito && (
         <>
       {!sinAmbito && yo?.idPersona && (
@@ -141,6 +149,10 @@ export default async function InicioPage() {
           <ChevronRight className="text-estado-amigo" size={20} />
         </Link>
       )}
+
+      <Suspense fallback={<AlientoCargando />}>
+        <AlientoDiario />
+      </Suspense>
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* ---------- Participación ---------- */}
