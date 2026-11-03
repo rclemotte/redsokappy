@@ -1,6 +1,7 @@
 // Datos del usuario logueado: nombre, rol y ámbito (qué parte de la SGPy ve).
 export type MiPerfil = {
   nombre: string;
+  idPersona: number | null;
   idRol: number;
   esAdmin: boolean;
   esEditor: boolean; // carga y corrige datos (Responsable, Encargado, Administrador)
@@ -15,7 +16,7 @@ export async function miPerfil(supabase: any): Promise<MiPerfil | null> {
   if (!user) return null;
   const { data: p } = await supabase
     .from("perfiles")
-    .select("id_rol, debe_cambiar_password, personas(nombre), region(nombre), cabildo(nombre), distrito(nombre), han(nombre)")
+    .select("id_rol, id_persona, debe_cambiar_password, personas(nombre), region(nombre), cabildo(nombre), distrito(nombre), han(nombre)")
     .eq("id", user.id)
     .single();
   const idRol = Number(p?.id_rol ?? 2);
@@ -32,6 +33,7 @@ export async function miPerfil(supabase: any): Promise<MiPerfil | null> {
     : null;
   return {
     nombre: p?.personas?.nombre ?? user.email?.split("@")[0] ?? "",
+    idPersona: p?.id_persona ?? null,
     idRol,
     esAdmin: idRol === 3,
     esEditor: [1, 3, 4].includes(idRol),

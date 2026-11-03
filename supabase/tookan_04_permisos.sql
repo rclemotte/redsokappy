@@ -10,7 +10,8 @@
 --       Cabildo → todos sus distritos y hanes
 --       Distrito → sus hanes
 --       Han → solo ese han
---     Sin ámbito asignado → no ve personas (hasta que la Coordinación le asigne uno).
+--     Sin ámbito asignado → ve solo su propia ficha y su participación.
+--   * Todos ven siempre su propia ficha y las reuniones en las que participaron.
 --   * Editan (dentro de su ámbito): Responsable (1) y Encargado de estadística (4).
 --     Miembro (2) solo mira.
 --   * Las personas sin han (bajas, pendientes de ubicar) las ven solo los ámbitos
@@ -88,6 +89,12 @@ returns bigint[] language sql stable security definer set search_path = public a
      and (p.id_rol = 3 or c.id_region = p.id_region or c.id_cabildo = p.id_cabildo);
 $$;
 
+-- La persona del propio usuario (todos ven siempre su propia ficha y participación)
+create or replace function public.mi_persona()
+returns bigint language sql stable security definer set search_path = public as $$
+  select id_persona from perfiles where id = auth.uid();
+$$;
+
 -- ¿El usuario puede ver a esta persona?
 create or replace function public.ve_persona(p_id bigint)
 returns boolean language sql stable security definer set search_path = public as $$
@@ -95,6 +102,7 @@ returns boolean language sql stable security definer set search_path = public as
     select 1 from personas x
      where x.id_persona = p_id
        and (public.es_admin()
+            or x.id_persona = public.mi_persona()
             or x.id_han = any (public.mis_hanes())
             or (x.id_han is null and x.id_cabildo = any (public.mis_cabildos())))
   );
@@ -238,6 +246,7 @@ end $$;
 select pg_temp.limpiar_politicas('personas');
 create policy amb_sel on personas for select to authenticated using (
   (select public.es_admin())
+  or id_persona = (select public.mi_persona())
   or id_han = any ((select public.mis_hanes())::bigint[])
   or (id_han is null and id_cabildo = any ((select public.mis_cabildos())::bigint[]))
 );

@@ -127,7 +127,7 @@ export default function UsuariosClient({ esAdmin = false }: { esAdmin?: boolean 
         setGuardando(false);
         return;
       }
-      setMsg(`Usuario creado ✓ Ingresa con la cédula ${data.cedula} (la contraseña inicial es la misma cédula). Queda como Miembro de su han.`);
+      setMsg(`Usuario creado ✓ Ingresa con la cédula ${data.cedula} (la contraseña inicial es la misma cédula). Queda como Miembro: ve solo su ficha y su participación.`);
       setIdPersona("");
       setCedula("");
       setAbrirNuevo(false);
@@ -142,7 +142,7 @@ export default function UsuariosClient({ esAdmin = false }: { esAdmin?: boolean 
     <div>
       <Cabecera
         titulo="Usuarios"
-        subtitulo={cargando ? "Cargando…" : `${perfiles.length} usuarios${sinAmbito ? ` · ${sinAmbito} sin ámbito` : ""}`}
+        subtitulo={cargando ? "Cargando…" : `${perfiles.length} usuarios${sinAmbito ? ` · ${sinAmbito} solo con su ficha` : ""}`}
         accion={
           <button
             onClick={() => { setAbrirNuevo((v) => !v); setErr(null); setMsg(null); }}
@@ -172,7 +172,7 @@ export default function UsuariosClient({ esAdmin = false }: { esAdmin?: boolean 
               <input className="campo" value={cedula} inputMode="numeric" autoCapitalize="none" onChange={(e) => setCedula(e.target.value)} placeholder="Número de cédula" />
             </label>
             <p className="rounded-2xl bg-marca-50 px-4 py-3 text-sm font-semibold text-tinta-suave">
-              La contraseña inicial es la misma cédula y la cambia en su primer ingreso. Empieza como <b>Miembro</b> de su han;
+              La contraseña inicial es la misma cédula y la cambia en su primer ingreso. Empieza como <b>Miembro</b> y ve solo su ficha y su participación;
               {esAdmin ? " después le asignás el rol y el ámbito." : " la Coordinación le asigna el rol y el ámbito."}
             </p>
             {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{err}</p>}
@@ -203,7 +203,7 @@ export default function UsuariosClient({ esAdmin = false }: { esAdmin?: boolean 
                       <div className="truncate font-bold">{p.personas?.nombre ?? "(sin persona vinculada)"}</div>
                       <div className="truncate text-[13px] font-semibold text-tinta-suave">{rol} · {p.cedula ?? "—"}</div>
                       <div className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-extrabold ${amb ? "bg-marca-50 text-marca" : "bg-estado-amigoBg text-estado-amigo"}`}>
-                        <MapPin size={12} strokeWidth={2.8} /> {amb ?? "Sin ámbito: no ve datos"}
+                        <MapPin size={12} strokeWidth={2.8} /> {amb ?? "Solo su ficha"}
                       </div>
                     </div>
                     {p.debe_cambiar_password && <span className="rounded-full bg-estado-nuevoBg px-2.5 py-1 text-xs font-extrabold text-estado-nuevo">Clave inicial</span>}

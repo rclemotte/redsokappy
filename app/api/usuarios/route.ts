@@ -116,12 +116,10 @@ export async function POST(req: Request) {
   }
 
   // 6) Crear el perfil (rol Miembro = 2, debe cambiar la clave en el 1er ingreso).
-  //    Ámbito inicial: el han de la persona (la Coordinación lo puede cambiar).
-  const { data: per } = await admin.from("personas").select("id_han").eq("id_persona", idPersona).single();
+  //    Sin ámbito: ve solo su ficha y su participación (la Coordinación le asigna uno si hace falta).
   const { error: ePerfil } = await admin.from("perfiles").insert({
     id: creado.user.id,
     id_persona: idPersona,
-    id_han: per?.id_han ?? null,
     id_rol: 2,
     cedula,
     debe_cambiar_password: true,

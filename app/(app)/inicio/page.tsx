@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarPlus, UserPlus, TriangleAlert, ChevronRight, CalendarCheck } from "lucide-react";
+import { CalendarPlus, UserPlus, TriangleAlert, ChevronRight, CalendarCheck, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Decoracion, Kpi } from "@/components/ui";
 import { DIVISIONES, ESTADOS, ORDEN_DIVISIONES, type ResumenHan } from "@/lib/tookan";
@@ -79,11 +79,32 @@ export default async function InicioPage() {
 
       {sinAmbito && (
         <div className="relative -mt-16 rounded-3xl bg-white p-5 shadow-suave lg:-mt-12">
-          <p className="font-display text-lg font-bold">Tu usuario todavía no tiene un ámbito</p>
+          <p className="font-display text-lg font-bold">Tu ficha y tu participación</p>
           <p className="mt-1 text-sm font-semibold text-tinta-suave">
-            Cuando la Coordinación te asigne tu han, distrito o cabildo, vas a ver acá a las personas y sus números.
+            Acá ves tus datos y las reuniones en las que participaste. Si colaborás con la estadística de tu han, distrito o
+            cabildo, la Coordinación te habilita para ver también esos datos.
           </p>
+          {yo?.idPersona && (
+            <Link href={`/miembros/${yo.idPersona}`} className="btn-sol mt-4 w-full">
+              <UserRound size={20} strokeWidth={2.5} /> Ver mi ficha
+            </Link>
+          )}
         </div>
+      )}
+
+      {!sinAmbito && (
+        <>
+      {!sinAmbito && yo?.idPersona && (
+        <Link href={`/miembros/${yo.idPersona}`} className="flex items-center gap-3 rounded-3xl bg-white p-4 shadow-suave transition active:scale-[0.99] lg:max-w-xl">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sol-suave text-marca">
+            <UserRound size={22} strokeWidth={2.4} />
+          </div>
+          <div className="flex-1">
+            <div className="font-extrabold">Mi ficha</div>
+            <div className="text-sm font-semibold text-tinta-suave">Tus datos y tu participación en reuniones</div>
+          </div>
+          <ChevronRight className="text-tinta-tenue" size={20} />
+        </Link>
       )}
 
       {/* ---------- Números por estado ---------- */}
@@ -201,6 +222,8 @@ export default async function InicioPage() {
             ))}
           </div>
         </section>
+      )}
+        </>
       )}
     </div>
   );
